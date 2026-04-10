@@ -329,6 +329,9 @@ function showStylePicker(pushHistory: boolean): void {
     customStyle = createCustomStyle(quizResult.customPrompt, closestPreset);
   }
 
+  // Show "Download All" only when multiple renders have been generated
+  updateDownloadAllVisibility();
+
   // Prepend the custom style card if the user took the quiz
   const allStyles: StylePreset[] = customStyle ? [customStyle, ...sortedStyles] : sortedStyles;
 
@@ -445,9 +448,6 @@ function showResultRaw(renderUrl: string, style: StylePreset): void {
   (document.getElementById('render-image') as HTMLImageElement).src = renderUrl;
   document.getElementById('result-style-name')!.textContent = style.label;
   document.getElementById('result-style-desc')!.textContent = style.description;
-
-  // Show "Download All" only when multiple renders have been generated
-  updateDownloadAllVisibility();
 }
 
 
