@@ -1,17 +1,68 @@
+/**
+ * styles.ts — Interior Design Style Presets
+ * ==========================================
+ *
+ * This module defines the 6 built-in interior design styles that users
+ * can choose from. Each style includes:
+ *   - A localized name and description (via the i18n `t()` function)
+ *   - A CSS gradient thumbnail (shown before a render is generated)
+ *   - A detailed English prompt for Gemini image generation
+ *   - A list of matching SCG building material products
+ *
+ * Available styles:
+ *   1. Modern Minimal    — White, clean lines, neutral palette
+ *   2. Japanese Zen      — Natural wood, earth tones, calm
+ *   3. Industrial Loft   — Concrete, metal, urban edge
+ *   4. Scandinavian      — Bright, cozy, light wood
+ *   5. Thai Contemporary — Teak, terracotta, tropical elegance
+ *   6. Luxury Modern     — Marble, dark accents, gold details
+ *
+ * The quiz system (quiz.ts) assigns scores to these style IDs based on
+ * user answers, then ranks them by match percentage.
+ *
+ * Additionally, `createCustomStyle()` generates a 7th "custom" style
+ * based on the user's unique quiz answers — it uses the prompt tags
+ * from their selected options instead of a predefined prompt.
+ */
+
 import type { StylePreset } from './types';
 import { t } from './i18n';
 
+
+/**
+ * Create a custom style preset from quiz results.
+ *
+ * This is the "Made for You" style that appears at the top of the style
+ * picker after the user completes the quiz. Its prompt is dynamically
+ * built from the user's specific quiz answers (see quiz.ts).
+ *
+ * @param prompt         The custom Gemini prompt built from quiz promptTags
+ * @param closestPreset  The highest-scoring predefined style (used for SCG products)
+ * @returns              A StylePreset with id="custom"
+ */
 export function createCustomStyle(prompt: string, closestPreset: StylePreset): StylePreset {
   return {
     id: 'custom',
     label: t('custom.label'),
     description: t('custom.desc'),
+    // Gradient from accent red to gold — visually distinguishes the custom card
     thumbnail: 'linear-gradient(135deg, var(--accent), var(--accent-gold))',
     prompt,
+    // Borrow product recommendations from the closest matching preset
     scgProducts: closestPreset.scgProducts,
   };
 }
 
+
+/**
+ * Get all style presets with fresh translations.
+ *
+ * This function is called each time we need the style list to ensure
+ * labels and descriptions reflect the current language setting.
+ * (If the user switches from Thai to English, we need fresh `t()` calls.)
+ *
+ * @returns Array of 6 StylePreset objects
+ */
 export function getStylePresets(): StylePreset[] {
   return [
     {

@@ -1,19 +1,53 @@
+/*
+ * style.css — StyleSpace Visual Design System
+ * ==============================================
+ *
+ * This stylesheet defines the complete visual identity for StyleSpace.
+ * It uses a dark theme with glassmorphism effects, inspired by modern
+ * design tools like Figma and Linear.
+ *
+ * Design Tokens (CSS Custom Properties):
+ *   --bg:          Near-black background (#060608)
+ *   --surface:     Translucent white overlay for cards/panels
+ *   --border:      Subtle white borders at 8% opacity
+ *   --accent:      SCG brand red-orange (#E8401C) — primary action color
+ *   --accent-gold: Warm gold (#F5A623) — used in gradients with accent
+ *   --text:        Off-white text (#F0F0F0)
+ *   --text-muted:  Gray text (#9A9AA0) for secondary content
+ *
+ * Key visual patterns:
+ *   - Glassmorphism: backdrop-filter blur + translucent backgrounds
+ *   - Ambient glow: Soft red radial gradient behind the header
+ *   - fadeUp animation: Content slides up and fades in when sections appear
+ *   - Accent hover effects: Elements lift (translateY) and glow on hover
+ *
+ * Responsive breakpoints:
+ *   - 768px: Tablet (2-column grid, stacked headers)
+ *   - 480px: Mobile (1-column grid, smaller text)
+ */
+
+
+/* ─── Design Tokens ──────────────────────────────────────────────────────── */
+
 :root {
   --bg: #060608;
   --surface: rgba(255, 255, 255, 0.04);
-  --surface-solid: #111113;
+  --surface-solid: #111113;                /* Non-transparent surface (for overlays) */
   --border: rgba(255, 255, 255, 0.08);
   --border-hover: rgba(255, 255, 255, 0.15);
-  --accent: #E8401C;
-  --accent-soft: rgba(232, 64, 28, 0.15);
-  --accent-gold: #F5A623;
+  --accent: #E8401C;                        /* SCG brand red-orange */
+  --accent-soft: rgba(232, 64, 28, 0.15);  /* Accent at low opacity (backgrounds) */
+  --accent-gold: #F5A623;                   /* Gold for gradients */
   --text: #F0F0F0;
   --text-muted: #9A9AA0;
   --font: 'Inter', sans-serif;
-  --radius: 16px;
-  --radius-sm: 12px;
-  --transition: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  --radius: 16px;                           /* Large border radius for cards */
+  --radius-sm: 12px;                        /* Smaller radius for buttons */
+  --transition: 0.25s cubic-bezier(0.4, 0, 0.2, 1); /* Smooth ease-out */
 }
+
+
+/* ─── Reset & Base ───────────────────────────────────────────────────────── */
 
 * {
   margin: 0;
@@ -28,10 +62,16 @@ body {
   min-height: 100vh;
   line-height: 1.6;
   font-size: 16px;
-  overflow-x: hidden;
+  overflow-x: hidden;  /* Prevent horizontal scroll from glow effects */
 }
 
-/* Ambient background glow */
+
+/* ─── Ambient Background Glow ────────────────────────────────────────────── */
+/* A large, soft radial gradient fixed behind all content.
+   Creates a warm atmosphere without being distracting.
+   The glow is centered at the top of the page and uses the
+   accent color at very low opacity (8%). */
+
 .bg-glow {
   position: fixed;
   top: -40%;
@@ -40,11 +80,16 @@ body {
   width: 800px;
   height: 600px;
   background: radial-gradient(ellipse, rgba(232, 64, 28, 0.08) 0%, transparent 70%);
-  pointer-events: none;
+  pointer-events: none;  /* Click-through — doesn't interfere with interaction */
   z-index: 0;
 }
 
-/* ── Header ── */
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   HEADER
+   Contains logo, title, tagline, home button, and language toggle.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
 header {
   text-align: center;
   padding: 48px 24px 24px;
@@ -52,6 +97,7 @@ header {
   z-index: 1;
 }
 
+/* Home button and language toggle — positioned at top-right of header */
 .header-actions {
   position: absolute;
   top: 16px;
@@ -66,6 +112,7 @@ header {
   font-size: 13px;
 }
 
+/* Language toggle — circular button showing flag emoji */
 .lang-toggle {
   background: var(--surface);
   backdrop-filter: blur(12px);
@@ -89,6 +136,7 @@ header {
   transform: scale(1.1);
 }
 
+/* Logo: "SCG × All in." — clickable, returns to upload page */
 .logo {
   font-size: 20px;
   margin-bottom: 12px;
@@ -104,17 +152,20 @@ header {
   opacity: 0.8;
 }
 
+/* "SCG" in bold accent color */
 .logo-scg {
   font-weight: 800;
   color: var(--accent);
 }
 
+/* "×" separator between SCG and All in. */
 .logo-sep {
   color: var(--text-muted);
   margin: 0 6px;
   opacity: 0.5;
 }
 
+/* "All in." with gradient text (gold → red) */
 .logo-allin {
   font-style: italic;
   background: linear-gradient(135deg, var(--accent-gold), var(--accent));
@@ -124,6 +175,7 @@ header {
   font-weight: 700;
 }
 
+/* App title — large text with subtle vertical gradient (white → gray) */
 header h1 {
   font-size: 42px;
   font-weight: 700;
@@ -141,7 +193,12 @@ header h1 {
   font-weight: 400;
 }
 
-/* ── Main ── */
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   MAIN CONTENT AREA
+   Centered container with max-width for comfortable reading on large screens.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
 main {
   max-width: 1100px;
   margin: 0 auto;
@@ -150,7 +207,7 @@ main {
   z-index: 1;
 }
 
-/* Section transition */
+/* All sections animate in with a slide-up fade effect */
 main > section {
   animation: fadeUp 0.4s ease-out;
 }
@@ -160,7 +217,13 @@ main > section {
   to { opacity: 1; transform: translateY(0); }
 }
 
-/* ── Upload Zone ── */
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   UPLOAD ZONE
+   A dashed-border drop zone for floor plan images.
+   Supports click-to-browse and drag-and-drop.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
 #upload-zone {
   height: 340px;
   border: 2px dashed rgba(255, 255, 255, 0.12);
@@ -176,17 +239,20 @@ main > section {
   -webkit-backdrop-filter: blur(8px);
 }
 
+/* Hover state — slightly brighter border and background */
 #upload-zone:hover {
   border-color: rgba(255, 255, 255, 0.25);
   background: rgba(255, 255, 255, 0.06);
 }
 
+/* Active drag-over state — accent color highlight with glow */
 #upload-zone.drag-over {
   border-color: var(--accent);
   background: var(--accent-soft);
   box-shadow: 0 0 40px rgba(232, 64, 28, 0.15);
 }
 
+/* Upload icon with animated pulsing ring */
 .upload-icon-wrapper {
   position: relative;
   width: 80px;
@@ -197,6 +263,7 @@ main > section {
   margin-bottom: 20px;
 }
 
+/* Pulsing ring animation — expands and fades out */
 .upload-icon-ring {
   position: absolute;
   inset: 0;
@@ -231,7 +298,13 @@ main > section {
   font-size: 15px;
 }
 
-/* ── Loading ── */
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   LOADING STATE
+   Glassmorphism card with animated "AI-style" loader bars.
+   Shown during API calls — text is updated dynamically by main.ts.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
 #loading-section {
   display: flex;
   flex-direction: column;
@@ -250,6 +323,7 @@ main > section {
   border: 1px solid var(--border);
 }
 
+/* AI-style loader: 4 bars that pulse in height like an audio visualizer */
 .ai-loader {
   display: flex;
   align-items: center;
@@ -267,6 +341,7 @@ main > section {
   animation: aiPulse 1.2s ease-in-out infinite;
 }
 
+/* Staggered animation delay creates a wave effect across the bars */
 .ai-loader-bar:nth-child(1) { animation-delay: 0s; }
 .ai-loader-bar:nth-child(2) { animation-delay: 0.15s; }
 .ai-loader-bar:nth-child(3) { animation-delay: 0.3s; }
@@ -294,7 +369,13 @@ main > section {
   font-size: 15px;
 }
 
-/* ── Error ── */
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   ERROR STATE
+   Card with exclamation icon, error message, and retry button.
+   The border uses a tinted accent color to signal the error state.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
 #error-section {
   display: flex;
   flex-direction: column;
@@ -310,7 +391,7 @@ main > section {
   background: var(--surface);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(232, 64, 28, 0.2);
+  border: 1px solid rgba(232, 64, 28, 0.2);  /* Red-tinted border */
 }
 
 .error-icon {
@@ -333,7 +414,15 @@ main > section {
   margin-bottom: 24px;
 }
 
-/* ── Buttons ── */
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   BUTTONS
+   Three button variants:
+     - .btn-primary: Solid accent background (main actions)
+     - .btn-secondary: Transparent with border (secondary actions)
+     - .btn-text: No background/border (tertiary, like "skip quiz")
+   ═══════════════════════════════════════════════════════════════════════════ */
+
 .btn-primary {
   background: var(--accent);
   color: white;
@@ -390,13 +479,21 @@ main > section {
   color: var(--text);
 }
 
-/* ── Quiz ── */
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   QUIZ
+   The 6-question lifestyle quiz. Each question is shown one at a time
+   with animated transitions. The progress bar uses a gradient from
+   accent red to gold.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
 .quiz-container {
   max-width: 680px;
   margin: 0 auto;
   text-align: center;
 }
 
+/* Thin progress bar at the top of the quiz */
 .quiz-progress {
   width: 100%;
   height: 4px;
@@ -406,15 +503,17 @@ main > section {
   overflow: hidden;
 }
 
+/* Animated fill bar — width is set by JavaScript as questions advance */
 .quiz-progress-bar {
   height: 100%;
   background: linear-gradient(90deg, var(--accent), var(--accent-gold));
   border-radius: 2px;
   transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
   width: 0%;
-  box-shadow: 0 0 12px rgba(232, 64, 28, 0.4);
+  box-shadow: 0 0 12px rgba(232, 64, 28, 0.4);  /* Subtle glow on the bar */
 }
 
+/* Step indicator: "QUESTION 3 OF 6" */
 .quiz-step {
   color: var(--text-muted);
   font-size: 14px;
@@ -437,6 +536,7 @@ main > section {
   gap: 12px;
 }
 
+/* Individual quiz option — emoji icon on the left, text on the right */
 .quiz-option {
   display: flex;
   align-items: center;
@@ -454,12 +554,14 @@ main > section {
   font-family: var(--font);
 }
 
+/* Hover: subtle slide-right effect to indicate interactivity */
 .quiz-option:hover {
   border-color: var(--border-hover);
   transform: translateX(4px);
   background: rgba(255, 255, 255, 0.06);
 }
 
+/* Selected state: accent border with soft glow */
 .quiz-option.selected {
   border-color: var(--accent);
   background: var(--accent-soft);
@@ -478,7 +580,14 @@ main > section {
   font-weight: 500;
 }
 
-/* ── Styles Header ── */
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   STYLE PICKER
+   Grid of style cards. Each card has a thumbnail (gradient or cached render),
+   style name, description, and optional match percentage badge.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Header: title + room summary on the left, action buttons on the right */
 .styles-header {
   display: flex;
   justify-content: space-between;
@@ -502,13 +611,14 @@ main > section {
   font-size: 15px;
 }
 
-/* ── Style Grid ── */
+/* Responsive 3-column grid for style cards */
 .style-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 20px;
 }
 
+/* Individual style card — glassmorphism with hover lift effect */
 .style-card {
   background: var(--surface);
   backdrop-filter: blur(8px);
@@ -531,6 +641,7 @@ main > section {
   box-shadow: 0 0 30px rgba(232, 64, 28, 0.2);
 }
 
+/* Thumbnail area — shows CSS gradient or cached render image */
 .style-thumbnail {
   height: 140px;
   width: 100%;
@@ -544,6 +655,7 @@ main > section {
   opacity: 0.6;
 }
 
+/* Spinner used inside thumbnails during generation */
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
@@ -557,11 +669,13 @@ main > section {
   animation: spin 0.8s linear infinite;
 }
 
+/* Disable click on cards that are currently generating */
 .style-card:has(.generating) {
   cursor: default;
   opacity: 0.7;
 }
 
+/* Card info section below the thumbnail */
 .style-info {
   padding: 16px 20px;
 }
@@ -577,6 +691,7 @@ main > section {
   font-size: 14px;
 }
 
+/* Match percentage badge (e.g., "72% match") */
 .style-badge {
   display: inline-block;
   font-size: 11px;
@@ -590,22 +705,29 @@ main > section {
   letter-spacing: 0.3px;
 }
 
+/* Special "Made for You" badge — gradient background */
 .style-badge.recommended {
   background: linear-gradient(135deg, var(--accent), var(--accent-gold));
   color: white;
 }
 
+/* Custom style card — spans full width with accent-tinted background */
 .custom-style-card {
-  grid-column: 1 / -1;
+  grid-column: 1 / -1;  /* Span all grid columns */
   border-color: var(--accent);
   background: linear-gradient(135deg, rgba(232, 64, 28, 0.06), rgba(245, 166, 35, 0.04));
 }
 
 .custom-style-card .style-thumbnail {
-  height: 180px;
+  height: 180px;  /* Taller thumbnail for the featured custom card */
 }
 
-/* ── Result ── */
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   RESULT VIEW
+   Displays the generated render with style info and action buttons.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
 .result-header {
   display: flex;
   justify-content: space-between;
@@ -629,6 +751,7 @@ main > section {
   gap: 12px;
 }
 
+/* Render image container — full width with dramatic shadow */
 .render-container {
   width: 100%;
 }
@@ -641,7 +764,11 @@ main > section {
 }
 
 
-/* ── Overlay ── */
+/* ═══════════════════════════════════════════════════════════════════════════
+   OVERLAY (for background generation notifications)
+   Fixed at the bottom of the screen with glassmorphism.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
 #generating-overlay {
   position: fixed;
   bottom: 24px;
@@ -671,12 +798,21 @@ main > section {
   border-width: 2px;
 }
 
-/* ── Utility ── */
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   UTILITY CLASSES
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Hide any element — used by main.ts to toggle section visibility */
 .hidden {
   display: none !important;
 }
 
-/* ── Footer ── */
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   FOOTER
+   ═══════════════════════════════════════════════════════════════════════════ */
+
 footer {
   text-align: center;
   padding: 32px 24px;
@@ -687,16 +823,23 @@ footer {
   z-index: 1;
 }
 
-/* ── Responsive ── */
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   RESPONSIVE DESIGN
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Tablet: 768px and below */
 @media (max-width: 768px) {
   header h1 {
     font-size: 32px;
   }
 
+  /* Reduce style grid to 2 columns */
   .style-grid {
     grid-template-columns: repeat(2, 1fr);
   }
 
+  /* Stack header elements vertically */
   .result-header,
   .styles-header {
     flex-direction: column;
@@ -704,11 +847,14 @@ footer {
   }
 }
 
+/* Mobile: 480px and below */
 @media (max-width: 480px) {
+  /* Single column for style cards */
   .style-grid {
     grid-template-columns: 1fr;
   }
 
+  /* Smaller quiz question text */
   .quiz-question {
     font-size: 22px;
   }

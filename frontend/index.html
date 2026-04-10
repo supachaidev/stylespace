@@ -5,13 +5,26 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <title>StyleSpace | All in.</title>
+  <!-- Google Fonts: Inter — used throughout the app for clean, modern typography -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/style.css">
 </head>
 <body>
+  <!--
+    Ambient Background Glow
+    A subtle radial gradient fixed behind all content.
+    Creates a warm, soft glow effect at the top of the page
+    using the accent color (SCG red-orange) at very low opacity.
+  -->
   <div class="bg-glow"></div>
 
+  <!--
+    Header
+    Contains: Home button (hidden on upload page), language toggle,
+    logo (clickable to go home), app title, and tagline.
+    All text content is updated dynamically by main.ts when the language changes.
+  -->
   <header>
     <div class="header-actions">
       <button id="home-btn" class="btn-secondary btn-home hidden">Home</button>
@@ -27,11 +40,18 @@
   </header>
 
   <main>
-    <!-- Upload -->
+    <!--
+      ════════════════════════════════════════════════════════════
+      Section 1: UPLOAD
+      The landing page. Shows a drop zone where users can drag
+      or click to upload their floor plan image.
+      ════════════════════════════════════════════════════════════
+    -->
     <section id="upload-section">
       <div id="upload-zone">
         <input type="file" id="file-input" accept="image/*" hidden />
         <div class="upload-icon-wrapper">
+          <!-- Animated pulsing ring around the upload icon -->
           <div class="upload-icon-ring"></div>
           <div class="upload-icon">&#x2B06;</div>
         </div>
@@ -40,9 +60,18 @@
       </div>
     </section>
 
-    <!-- Loading -->
+    <!--
+      ════════════════════════════════════════════════════════════
+      Section 2: LOADING
+      Shown during API calls (analyze, generate, restyle).
+      The title and subtitle text are updated dynamically by
+      main.ts depending on which operation is in progress.
+      Uses an animated bar loader instead of a spinner.
+      ════════════════════════════════════════════════════════════
+    -->
     <section id="loading-section" class="hidden">
       <div class="loading-card">
+        <!-- Animated AI-style loader: 4 bars that pulse in sequence -->
         <div class="ai-loader">
           <div class="ai-loader-bar"></div>
           <div class="ai-loader-bar"></div>
@@ -54,7 +83,13 @@
       </div>
     </section>
 
-    <!-- Error -->
+    <!--
+      ════════════════════════════════════════════════════════════
+      Section 3: ERROR
+      Shown when any API call fails. Displays the error message
+      and a "Try Again" button that resets the app to upload.
+      ════════════════════════════════════════════════════════════
+    -->
     <section id="error-section" class="hidden">
       <div class="error-card">
         <div class="error-icon">!</div>
@@ -63,7 +98,21 @@
       </div>
     </section>
 
-    <!-- Quiz -->
+    <!--
+      ════════════════════════════════════════════════════════════
+      Section 4: QUIZ
+      A 6-question lifestyle quiz that determines the user's
+      preferred interior design style. Questions and options are
+      rendered dynamically by main.ts from the quiz.ts data.
+
+      Elements:
+        - Progress bar (animated gradient, fills as questions advance)
+        - Step indicator ("Question 3 of 6")
+        - Question text
+        - Option buttons (emoji icon + label)
+        - Skip button (goes directly to style picker)
+      ════════════════════════════════════════════════════════════
+    -->
     <section id="quiz-section" class="hidden">
       <div class="quiz-container">
         <div class="quiz-progress">
@@ -71,12 +120,26 @@
         </div>
         <p class="quiz-step" id="quiz-step"></p>
         <h2 class="quiz-question" id="quiz-question"></h2>
-        <div class="quiz-options" id="quiz-options"></div>
+        <div class="quiz-options" id="quiz-options">
+          <!-- Quiz option buttons are injected here by main.ts -->
+        </div>
         <button id="skip-quiz-btn" class="btn-text">Skip quiz &rarr; Browse all styles</button>
       </div>
     </section>
 
-    <!-- Style Picker -->
+    <!--
+      ════════════════════════════════════════════════════════════
+      Section 5: STYLE PICKER
+      Displays all available styles as cards in a responsive grid.
+      If the user completed the quiz, styles are sorted by match
+      percentage and a "Made for You" custom style appears first.
+
+      Elements:
+        - Header with title, room summary, retake/upload buttons
+        - Style grid (3 columns on desktop, 2 on tablet, 1 on mobile)
+        - Each card has: thumbnail, style name, description, match badge
+      ════════════════════════════════════════════════════════════
+    -->
     <section id="styles-section" class="hidden">
       <div class="styles-header">
         <div>
@@ -88,10 +151,23 @@
           <button id="new-upload-btn" class="btn-secondary">Upload New Image</button>
         </div>
       </div>
-      <div class="style-grid" id="style-grid"></div>
+      <div class="style-grid" id="style-grid">
+        <!-- Style cards are injected here by main.ts -->
+      </div>
     </section>
 
-    <!-- Result -->
+    <!--
+      ════════════════════════════════════════════════════════════
+      Section 6: RESULT
+      Displays the AI-generated render with style info and actions.
+
+      Elements:
+        - Header with style name, description
+        - Regenerate button (generates a new variation)
+        - Try Another Style button (goes back to style picker)
+        - The render image (full-width, displayed from data URL)
+      ════════════════════════════════════════════════════════════
+    -->
     <section id="result-section" class="hidden">
       <div class="result-header">
         <div>
@@ -113,6 +189,7 @@
     <p>Bangkok University &times; SCG | Senior Project 2026</p>
   </footer>
 
+  <!-- Vite processes this as an ES module — TypeScript is compiled on the fly in dev -->
   <script type="module" src="/src/main.ts"></script>
 </body>
 </html>
