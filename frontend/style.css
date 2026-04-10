@@ -136,7 +136,7 @@ header {
   transform: scale(1.1);
 }
 
-/* Logo: "SCG × All in." — clickable, returns to upload page */
+/* Logo: "SCG × All in" — clickable, returns to upload page */
 .logo {
   font-size: 20px;
   margin-bottom: 12px;
@@ -158,14 +158,14 @@ header {
   color: var(--accent);
 }
 
-/* "×" separator between SCG and All in. */
+/* "×" separator between SCG and All in */
 .logo-sep {
   color: var(--text-muted);
   margin: 0 6px;
   opacity: 0.5;
 }
 
-/* "All in." with gradient text (gold → red) */
+/* "All in" with gradient text (gold → red) */
 .logo-allin {
   font-style: italic;
   background: linear-gradient(135deg, var(--accent-gold), var(--accent));

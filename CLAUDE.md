@@ -1,5 +1,5 @@
 # CLAUDE.md — Floorplan to 3D Visualizer
-# Project: "All in." × SCG | Bangkok University Senior Project
+# Project: "All in" × SCG | Bangkok University Senior Project
 
 ## 🎯 Project Overview
 Build a web app where a user uploads a 2D floor plan image and gets:
@@ -551,7 +551,7 @@ document.addEventListener('DOMContentLoaded', () => {
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>SCG Space Visualizer | All in.</title>
+  <title>SCG Space Visualizer | All in</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/style.css">
@@ -562,7 +562,7 @@ document.addEventListener('DOMContentLoaded', () => {
     <div class="logo">
       <span class="logo-scg">SCG</span>
       <span class="logo-sep">×</span>
-      <span class="logo-allin">All in.</span>
+      <span class="logo-allin">All in</span>
     </div>
     <h1>Space Visualizer</h1>
     <p class="tagline">Upload your floor plan. See it in 3D instantly.</p>

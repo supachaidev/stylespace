@@ -1,6 +1,6 @@
 # StyleSpace
 
-**"All in." x SCG | Bangkok University Senior Project 2026**
+**"All in" x SCG | Bangkok University Senior Project 2026**
 
 Upload a 2D floor plan and instantly explore it in different interior design styles — powered by AI.
 
