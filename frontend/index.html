@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <title>StyleSpace | All in.</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <div class="bg-glow"></div>
+
+  <header>
+    <div class="header-actions">
+      <button id="home-btn" class="btn-secondary btn-home hidden">Home</button>
+      <button id="lang-btn" class="lang-toggle">EN</button>
+    </div>
+    <a id="logo-link" class="logo" href="#">
+      <span class="logo-scg">SCG</span>
+      <span class="logo-sep">&times;</span>
+      <span class="logo-allin">All in.</span>
+    </a>
+    <h1>StyleSpace</h1>
+    <p class="tagline">Upload your floor plan. Explore interior styles instantly.</p>
+  </header>
+
+  <main>
+    <!-- Upload -->
+    <section id="upload-section">
+      <div id="upload-zone">
+        <input type="file" id="file-input" accept="image/*" hidden />
+        <div class="upload-icon-wrapper">
+          <div class="upload-icon-ring"></div>
+          <div class="upload-icon">&#x2B06;</div>
+        </div>
+        <p class="upload-text">Drop your floor plan here</p>
+        <p class="upload-subtext">or click to browse &middot; JPG, PNG</p>
+      </div>
+    </section>
+
+    <!-- Loading -->
+    <section id="loading-section" class="hidden">
+      <div class="loading-card">
+        <div class="ai-loader">
+          <div class="ai-loader-bar"></div>
+          <div class="ai-loader-bar"></div>
+          <div class="ai-loader-bar"></div>
+          <div class="ai-loader-bar"></div>
+        </div>
+        <p class="loading-text" id="loading-text">Analyzing your floor plan...</p>
+        <p class="loading-subtext" id="loading-subtext">Identifying rooms and layout</p>
+      </div>
+    </section>
+
+    <!-- Error -->
+    <section id="error-section" class="hidden">
+      <div class="error-card">
+        <div class="error-icon">!</div>
+        <p class="error-text" id="error-message"></p>
+        <button id="retry-btn" class="btn-primary">Try Again</button>
+      </div>
+    </section>
+
+    <!-- Quiz -->
+    <section id="quiz-section" class="hidden">
+      <div class="quiz-container">
+        <div class="quiz-progress">
+          <div class="quiz-progress-bar" id="quiz-progress-bar"></div>
+        </div>
+        <p class="quiz-step" id="quiz-step"></p>
+        <h2 class="quiz-question" id="quiz-question"></h2>
+        <div class="quiz-options" id="quiz-options"></div>
+        <button id="skip-quiz-btn" class="btn-text">Skip quiz &rarr; Browse all styles</button>
+      </div>
+    </section>
+
+    <!-- Style Picker -->
+    <section id="styles-section" class="hidden">
+      <div class="styles-header">
+        <div>
+          <h2>Choose a Style</h2>
+          <p class="room-summary" id="room-summary"></p>
+        </div>
+        <div class="styles-header-actions">
+          <button id="retake-quiz-btn" class="btn-secondary">Retake Quiz</button>
+          <button id="new-upload-btn" class="btn-secondary">Upload New Image</button>
+        </div>
+      </div>
+      <div class="style-grid" id="style-grid"></div>
+    </section>
+
+    <!-- Result -->
+    <section id="result-section" class="hidden">
+      <div class="result-header">
+        <div>
+          <h2 id="result-style-name"></h2>
+          <p class="result-style-desc" id="result-style-desc"></p>
+        </div>
+        <div class="result-actions">
+<button id="regenerate-btn" class="btn-secondary">Regenerate</button>
+          <button id="try-another-style-btn" class="btn-primary">Try Another Style</button>
+        </div>
+      </div>
+      <div class="render-container">
+        <img id="render-image" src="" alt="AI Render" />
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <p>Bangkok University &times; SCG | Senior Project 2026</p>
+  </footer>
+
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>
