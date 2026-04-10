@@ -608,7 +608,7 @@ main > section {
 
 .room-summary {
   color: var(--text-muted);
-  font-size: 15px;
+  font-size: 13px;
 }
 
 /* Responsive 3-column grid for style cards */

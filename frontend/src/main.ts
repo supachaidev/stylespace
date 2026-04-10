@@ -510,14 +510,16 @@ function downloadCurrentRender(): void {
   downloadDataUrl(url, `stylespace-${currentStyle.id}.png`);
 }
 
-/** Download all cached renders (one file per style) */
+/** Download all cached renders (one file per style, staggered to avoid browser blocking) */
 function downloadAllRenders(): void {
   const presets = getStylePresets();
-  for (const [styleId, url] of renderCache.entries()) {
+  const entries = [...renderCache.entries()];
+  entries.forEach(([styleId, url], i) => {
     const preset = styleId === 'custom' ? customStyle : presets.find(s => s.id === styleId);
     const name = preset ? preset.id : styleId;
-    downloadDataUrl(url, `stylespace-${name}.png`);
-  }
+    // Stagger downloads — browsers block rapid successive downloads
+    setTimeout(() => downloadDataUrl(url, `stylespace-${name}.png`), i * 300);
+  });
 }
 
 /** Show/hide the "Download All" button based on how many renders are cached */
