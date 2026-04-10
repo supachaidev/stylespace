@@ -445,6 +445,9 @@ function showResultRaw(renderUrl: string, style: StylePreset): void {
   (document.getElementById('render-image') as HTMLImageElement).src = renderUrl;
   document.getElementById('result-style-name')!.textContent = style.label;
   document.getElementById('result-style-desc')!.textContent = style.description;
+
+  // Show "Download All" only when multiple renders have been generated
+  updateDownloadAllVisibility();
 }
 
 
@@ -477,6 +480,53 @@ async function regenerateRender(style: StylePreset): Promise<void> {
     showResultRaw(data.render_url, style);
   } catch {
     showError(t('error.restyle'));
+  }
+}
+
+
+// ─── Download ───────────────────────────────────────────────────────────────
+
+/** Convert a data URL to a Blob and trigger a file download */
+function downloadDataUrl(dataUrl: string, filename: string): void {
+  const [header, b64] = dataUrl.split(',', 2);
+  const mime = header.match(/:(.*?);/)?.[1] ?? 'image/png';
+  const bytes = atob(b64);
+  const arr = new Uint8Array(bytes.length);
+  for (let i = 0; i < bytes.length; i++) arr[i] = bytes.charCodeAt(i);
+  const blob = new Blob([arr], { type: mime });
+
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+/** Download the current style's render */
+function downloadCurrentRender(): void {
+  if (!currentStyle) return;
+  const url = renderCache.get(currentStyle.id);
+  if (!url) return;
+  downloadDataUrl(url, `stylespace-${currentStyle.id}.png`);
+}
+
+/** Download all cached renders (one file per style) */
+function downloadAllRenders(): void {
+  const presets = getStylePresets();
+  for (const [styleId, url] of renderCache.entries()) {
+    const preset = styleId === 'custom' ? customStyle : presets.find(s => s.id === styleId);
+    const name = preset ? preset.id : styleId;
+    downloadDataUrl(url, `stylespace-${name}.png`);
+  }
+}
+
+/** Show/hide the "Download All" button based on how many renders are cached */
+function updateDownloadAllVisibility(): void {
+  const btn = document.getElementById('download-all-btn')!;
+  if (renderCache.size > 1) {
+    btn.classList.remove('hidden');
+  } else {
+    btn.classList.add('hidden');
   }
 }
 
@@ -554,6 +604,8 @@ function updateStaticText(): void {
   document.getElementById('new-upload-btn')!.textContent = t('btn.uploadNew');
   document.getElementById('regenerate-btn')!.textContent = t('btn.regenerate');
   document.getElementById('try-another-style-btn')!.textContent = t('btn.tryAnother');
+  document.getElementById('download-btn')!.textContent = t('btn.download');
+  document.getElementById('download-all-btn')!.textContent = t('btn.downloadAll');
   document.querySelector('.styles-header h2')!.textContent = t('styles.title');
   document.getElementById('home-btn')!.textContent = t('btn.home');
   document.getElementById('lang-btn')!.textContent = t('lang.flag');
@@ -632,6 +684,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
   document.getElementById('regenerate-btn')!.addEventListener('click', () => { if (currentStyle) regenerateRender(currentStyle); });
+  document.getElementById('download-btn')!.addEventListener('click', downloadCurrentRender);
+  document.getElementById('download-all-btn')!.addEventListener('click', downloadAllRenders);
   document.getElementById('new-upload-btn')!.addEventListener('click', () => { resetApp(); pushState({ view: 'upload' }); });
   document.getElementById('skip-quiz-btn')!.addEventListener('click', () => showStylePicker(true));
   document.getElementById('retake-quiz-btn')!.addEventListener('click', () => {

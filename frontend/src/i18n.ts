@@ -121,6 +121,8 @@ const UI_STRINGS: Record<string, Record<Lang, string>> = {
   'btn.uploadNew': { en: 'Upload New Image', th: 'อัปโหลดรูปใหม่' },
   'btn.regenerate': { en: 'Regenerate', th: 'สร้างใหม่' },
   'btn.tryAnother': { en: 'Try Another Style', th: 'ลองสไตล์อื่น' },
+  'btn.download': { en: 'Download', th: 'ดาวน์โหลด' },
+  'btn.downloadAll': { en: 'Download All', th: 'ดาวน์โหลดทั้งหมด' },
   'btn.home': { en: 'Home', th: 'หน้าแรก' },
 
   // ── Quiz ──
