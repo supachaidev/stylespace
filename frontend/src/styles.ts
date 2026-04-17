@@ -199,7 +199,7 @@ export function createRandomStyle(): StylePreset {
   return {
     id: 'random',
     label: t('btn.randomStyle'),
-    description: prompt.slice(0, 80) + '...',
+    description: `${atmosphere} atmosphere, ${palette}, ${wall}, ${floor}, ${furniture}, ${lighting}`,
     thumbnail: 'linear-gradient(135deg, #FF6B6B, #4ECDC4, #45B7D1)',
     prompt,
     scgProducts: randomPreset.scgProducts,
