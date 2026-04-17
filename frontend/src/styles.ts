@@ -26,7 +26,7 @@
  */
 
 import type { StylePreset } from './types';
-import { t } from './i18n';
+import { t, getLang } from './i18n';
 
 
 /**
@@ -131,56 +131,93 @@ export function createRandomStyle(): StylePreset {
     const shuffled = [...arr].sort(() => Math.random() - 0.5);
     return shuffled.slice(0, n);
   };
+  const lang = getLang();
 
+  // Each element has { en, th } — English is used for the Gemini prompt,
+  // the current language is used for the user-facing description.
   const atmospheres = [
-    'bright and airy', 'warm and cozy', 'dark and moody', 'serene and calm',
-    'bold and dramatic', 'playful and colorful', 'rustic and charming',
-    'sleek and futuristic', 'romantic and soft', 'eclectic and vibrant',
+    { en: 'bright and airy', th: 'สว่างโปร่งสบาย' },
+    { en: 'warm and cozy', th: 'อบอุ่นน่าอยู่' },
+    { en: 'dark and moody', th: 'โทนเข้มลึกลับ' },
+    { en: 'serene and calm', th: 'สงบเรียบง่าย' },
+    { en: 'bold and dramatic', th: 'โดดเด่นทรงพลัง' },
+    { en: 'playful and colorful', th: 'สนุกสดใสหลากสี' },
+    { en: 'rustic and charming', th: 'รัสติกมีเสน่ห์' },
+    { en: 'sleek and futuristic', th: 'ล้ำสมัยเรียบหรู' },
+    { en: 'romantic and soft', th: 'โรแมนติกนุ่มนวล' },
+    { en: 'eclectic and vibrant', th: 'ผสมผสานมีชีวิตชีวา' },
   ];
 
   const palettes = [
-    'white and cream tones', 'earth tones with terracotta accents',
-    'charcoal and deep navy', 'sage green and warm beige',
-    'blush pink and gold', 'ocean blue and sandy neutrals',
-    'burnt orange and olive', 'lavender and soft gray',
-    'forest green and walnut brown', 'coral and teal accents',
-    'monochrome black and white', 'mustard yellow and slate',
+    { en: 'white and cream tones', th: 'โทนขาวและครีม' },
+    { en: 'earth tones with terracotta accents', th: 'โทนดินกับเทอร์ราคอตตา' },
+    { en: 'charcoal and deep navy', th: 'โทนเทาเข้มและกรมท่า' },
+    { en: 'sage green and warm beige', th: 'เขียวเสจกับเบจอุ่น' },
+    { en: 'blush pink and gold', th: 'ชมพูอ่อนกับทอง' },
+    { en: 'ocean blue and sandy neutrals', th: 'ฟ้าทะเลกับทรายธรรมชาติ' },
+    { en: 'burnt orange and olive', th: 'ส้มไหม้กับเขียวโอลีฟ' },
+    { en: 'lavender and soft gray', th: 'ลาเวนเดอร์กับเทาอ่อน' },
+    { en: 'forest green and walnut brown', th: 'เขียวป่ากับน้ำตาลวอลนัท' },
+    { en: 'coral and teal accents', th: 'คอรัลกับเทลเป็นจุดเด่น' },
+    { en: 'monochrome black and white', th: 'ขาวดำโมโนโครม' },
+    { en: 'mustard yellow and slate', th: 'เหลืองมัสตาร์ดกับสเลท' },
   ];
 
   const wallMaterials = [
-    'smooth white plaster walls', 'exposed brick accent wall',
-    'wood panel feature wall', 'textured concrete walls',
-    'wallpaper with botanical print', 'lime wash painted walls',
-    'stone cladding accent', 'venetian plaster finish',
+    { en: 'smooth white plaster walls', th: 'ผนังปูนฉาบเรียบสีขาว' },
+    { en: 'exposed brick accent wall', th: 'ผนังอิฐเปลือยเป็นจุดเด่น' },
+    { en: 'wood panel feature wall', th: 'ผนังไม้ตกแต่ง' },
+    { en: 'textured concrete walls', th: 'ผนังคอนกรีตมีเท็กซ์เจอร์' },
+    { en: 'wallpaper with botanical print', th: 'วอลเปเปอร์ลายใบไม้' },
+    { en: 'lime wash painted walls', th: 'ผนังทาสีไลม์วอช' },
+    { en: 'stone cladding accent', th: 'ผนังหินตกแต่ง' },
+    { en: 'venetian plaster finish', th: 'ผนังปูนเวเนเชียน' },
   ];
 
   const floorMaterials = [
-    'light oak hardwood floors', 'polished concrete floors',
-    'herringbone parquet flooring', 'terracotta tile floors',
-    'dark walnut wood floors', 'white marble tile floors',
-    'bamboo flooring', 'patterned cement tiles',
+    { en: 'light oak hardwood floors', th: 'พื้นไม้โอ๊คสีอ่อน' },
+    { en: 'polished concrete floors', th: 'พื้นคอนกรีตขัดมัน' },
+    { en: 'herringbone parquet flooring', th: 'พื้นปาร์เกต์ลายก้างปลา' },
+    { en: 'terracotta tile floors', th: 'พื้นกระเบื้องเทอร์ราคอตตา' },
+    { en: 'dark walnut wood floors', th: 'พื้นไม้วอลนัทเข้ม' },
+    { en: 'white marble tile floors', th: 'พื้นหินอ่อนสีขาว' },
+    { en: 'bamboo flooring', th: 'พื้นไม้ไผ่' },
+    { en: 'patterned cement tiles', th: 'พื้นกระเบื้องปูนลาย' },
   ];
 
   const furnitureStyles = [
-    'mid-century modern furniture', 'minimalist low-profile furniture',
-    'vintage and antique pieces', 'plush velvet upholstery',
-    'rattan and wicker furniture', 'sleek metal and glass furniture',
-    'handcrafted artisan pieces', 'modular contemporary furniture',
-    'bohemian mixed textiles', 'Scandinavian functional pieces',
+    { en: 'mid-century modern furniture', th: 'เฟอร์นิเจอร์มิดเซ็นจูรี่โมเดิร์น' },
+    { en: 'minimalist low-profile furniture', th: 'เฟอร์นิเจอร์มินิมอลเตี้ย' },
+    { en: 'vintage and antique pieces', th: 'เฟอร์นิเจอร์วินเทจ' },
+    { en: 'plush velvet upholstery', th: 'เฟอร์นิเจอร์กำมะหยี่นุ่ม' },
+    { en: 'rattan and wicker furniture', th: 'เฟอร์นิเจอร์หวาย' },
+    { en: 'sleek metal and glass furniture', th: 'เฟอร์นิเจอร์โลหะกระจก' },
+    { en: 'handcrafted artisan pieces', th: 'เฟอร์นิเจอร์งานฝีมือ' },
+    { en: 'modular contemporary furniture', th: 'เฟอร์นิเจอร์โมดูลาร์ร่วมสมัย' },
+    { en: 'bohemian mixed textiles', th: 'เฟอร์นิเจอร์โบฮีเมียนผ้าผสม' },
+    { en: 'Scandinavian functional pieces', th: 'เฟอร์นิเจอร์สแกนดิเนเวียน' },
   ];
 
   const lightingStyles = [
-    'warm ambient pendant lights', 'dramatic spotlight accents',
-    'natural light through large windows', 'paper lantern lighting',
-    'industrial Edison bulb fixtures', 'recessed LED strip lighting',
-    'chandelier centerpiece', 'floor lamps with warm glow',
+    { en: 'warm ambient pendant lights', th: 'โคมไฟแขวนแสงอุ่น' },
+    { en: 'dramatic spotlight accents', th: 'สปอตไลท์เน้นจุดเด่น' },
+    { en: 'natural light through large windows', th: 'แสงธรรมชาติผ่านหน้าต่างบาน​ใหญ่' },
+    { en: 'paper lantern lighting', th: 'โคมไฟกระดาษ' },
+    { en: 'industrial Edison bulb fixtures', th: 'โคมไฟหลอดเอดิสันอินดัสเทรียล' },
+    { en: 'recessed LED strip lighting', th: 'ไฟ LED ซ่อนในฝ้า' },
+    { en: 'chandelier centerpiece', th: 'โคมระย้าเป็นจุดเด่น' },
+    { en: 'floor lamps with warm glow', th: 'โคมไฟตั้งพื้นแสงอุ่น' },
   ];
 
   const decor = [
-    'abundant indoor plants', 'curated art collection on walls',
-    'sculptural decorative objects', 'woven textile wall hangings',
-    'ceramic vases and pottery', 'books and floating shelves',
-    'candles and aromatic elements', 'minimal carefully chosen pieces',
+    { en: 'abundant indoor plants', th: 'ต้นไม้ในร่มเยอะ ๆ' },
+    { en: 'curated art collection on walls', th: 'งานศิลปะบนผนัง' },
+    { en: 'sculptural decorative objects', th: 'ประติมากรรมตกแต่ง' },
+    { en: 'woven textile wall hangings', th: 'ผ้าทอแขวนผนัง' },
+    { en: 'ceramic vases and pottery', th: 'แจกันเซรามิก' },
+    { en: 'books and floating shelves', th: 'หนังสือและชั้นลอย' },
+    { en: 'candles and aromatic elements', th: 'เทียนหอมและของตกแต่ง' },
+    { en: 'minimal carefully chosen pieces', th: 'ของตกแต่งน้อยชิ้นที่เลือกมาอย่างดี' },
   ];
 
   const atmosphere = pick(atmospheres);
@@ -189,9 +226,15 @@ export function createRandomStyle(): StylePreset {
   const floor = pick(floorMaterials);
   const furniture = pick(furnitureStyles);
   const lighting = pick(lightingStyles);
-  const decorItems = pickN(decor, 2).join(', ');
+  const decorPicks = pickN(decor, 2);
 
-  const prompt = `Interior design with a ${atmosphere} atmosphere, ${palette} color palette, ${wall}, ${floor}, ${furniture}, ${lighting}, decorated with ${decorItems}. Professional architectural rendering, cohesive and intentional design.`;
+  // English prompt for Gemini (always English regardless of UI language)
+  const prompt = `Interior design with a ${atmosphere.en} atmosphere, ${palette.en} color palette, ${wall.en}, ${floor.en}, ${furniture.en}, ${lighting.en}, decorated with ${decorPicks.map(d => d.en).join(', ')}. Professional architectural rendering, cohesive and intentional design.`;
+
+  // User-facing description in the current language
+  const desc = lang === 'th'
+    ? `บรรยากาศ${atmosphere.th}, สี${palette.th}, ${wall.th}, ${floor.th}, ${furniture.th}, ${lighting.th}`
+    : `${atmosphere.en} atmosphere, ${palette.en}, ${wall.en}, ${floor.en}, ${furniture.en}, ${lighting.en}`;
 
   const presets = getStylePresets();
   const randomPreset = pick(presets);
@@ -199,7 +242,7 @@ export function createRandomStyle(): StylePreset {
   return {
     id: 'random',
     label: t('btn.randomStyle'),
-    description: `${atmosphere} atmosphere, ${palette}, ${wall}, ${floor}, ${furniture}, ${lighting}`,
+    description: desc,
     thumbnail: 'linear-gradient(135deg, #FF6B6B, #4ECDC4, #45B7D1)',
     prompt,
     scgProducts: randomPreset.scgProducts,
