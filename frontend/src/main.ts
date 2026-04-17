@@ -34,7 +34,7 @@
  *   - currentView: Which section is currently visible
  */
 
-import { getStylePresets, createCustomStyle } from './styles';
+import { getStylePresets, createCustomStyle, createRandomStyle } from './styles';
 import { getQuizQuestions, calculateResult, getMaxScore, type QuizResult } from './quiz';
 import { t, getLang, setLang, onLangChange } from './i18n';
 import type { StylePreset, AnalyzeResponse, RenderResponse } from './types';
@@ -604,6 +604,8 @@ function updateStaticText(): void {
   document.getElementById('skip-quiz-btn')!.textContent = t('btn.skipQuiz');
   document.getElementById('retake-quiz-btn')!.textContent = t('btn.retakeQuiz');
   document.getElementById('new-upload-btn')!.textContent = t('btn.uploadNew');
+  document.getElementById('random-style-btn')!.textContent = t('btn.randomStyle');
+  document.getElementById('random-style-picker-btn')!.textContent = t('btn.randomStylePicker');
   document.getElementById('regenerate-btn')!.textContent = t('btn.regenerate');
   document.getElementById('try-another-style-btn')!.textContent = t('btn.tryAnother');
   document.getElementById('download-btn')!.textContent = t('btn.download');
@@ -690,6 +692,12 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('download-all-btn')!.addEventListener('click', downloadAllRenders);
   document.getElementById('new-upload-btn')!.addEventListener('click', () => { resetApp(); pushState({ view: 'upload' }); });
   document.getElementById('skip-quiz-btn')!.addEventListener('click', () => showStylePicker(true));
+  document.getElementById('random-style-picker-btn')!.addEventListener('click', () => {
+    selectStyle(createRandomStyle());
+  });
+  document.getElementById('random-style-btn')!.addEventListener('click', () => {
+    generateFirstRender(createRandomStyle());
+  });
   document.getElementById('retake-quiz-btn')!.addEventListener('click', () => {
     // Reset quiz state and start over
     quizAnswers = [];

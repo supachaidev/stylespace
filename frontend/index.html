@@ -123,7 +123,11 @@
         <div class="quiz-options" id="quiz-options">
           <!-- Quiz option buttons are injected here by main.ts -->
         </div>
-        <button id="skip-quiz-btn" class="btn-text">Skip quiz &rarr; Browse all styles</button>
+        <div class="quiz-skip-actions">
+          <button id="random-style-btn" class="btn-text">Random style</button>
+          <span class="quiz-skip-sep">|</span>
+          <button id="skip-quiz-btn" class="btn-text">Browse all styles</button>
+        </div>
       </div>
     </section>
 
@@ -148,6 +152,7 @@
         </div>
         <div class="styles-header-actions">
           <button id="download-all-btn" class="btn-secondary hidden">Download All</button>
+          <button id="random-style-picker-btn" class="btn-secondary">Random Style</button>
           <button id="retake-quiz-btn" class="btn-secondary">Retake Quiz</button>
           <button id="new-upload-btn" class="btn-secondary">Upload New Image</button>
         </div>

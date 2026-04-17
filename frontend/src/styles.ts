@@ -118,3 +118,90 @@ export function getStylePresets(): StylePreset[] {
 
 // Keep for backward compat — but prefer getStylePresets() for fresh translations
 export const STYLE_PRESETS = getStylePresets();
+
+
+/**
+ * Generate a truly randomized interior design style by mixing and matching
+ * design elements from different categories. Each call produces a unique
+ * combination of atmosphere, colors, materials, furniture, and lighting.
+ */
+export function createRandomStyle(): StylePreset {
+  const pick = <T>(arr: T[]): T => arr[Math.floor(Math.random() * arr.length)];
+  const pickN = <T>(arr: T[], n: number): T[] => {
+    const shuffled = [...arr].sort(() => Math.random() - 0.5);
+    return shuffled.slice(0, n);
+  };
+
+  const atmospheres = [
+    'bright and airy', 'warm and cozy', 'dark and moody', 'serene and calm',
+    'bold and dramatic', 'playful and colorful', 'rustic and charming',
+    'sleek and futuristic', 'romantic and soft', 'eclectic and vibrant',
+  ];
+
+  const palettes = [
+    'white and cream tones', 'earth tones with terracotta accents',
+    'charcoal and deep navy', 'sage green and warm beige',
+    'blush pink and gold', 'ocean blue and sandy neutrals',
+    'burnt orange and olive', 'lavender and soft gray',
+    'forest green and walnut brown', 'coral and teal accents',
+    'monochrome black and white', 'mustard yellow and slate',
+  ];
+
+  const wallMaterials = [
+    'smooth white plaster walls', 'exposed brick accent wall',
+    'wood panel feature wall', 'textured concrete walls',
+    'wallpaper with botanical print', 'lime wash painted walls',
+    'stone cladding accent', 'venetian plaster finish',
+  ];
+
+  const floorMaterials = [
+    'light oak hardwood floors', 'polished concrete floors',
+    'herringbone parquet flooring', 'terracotta tile floors',
+    'dark walnut wood floors', 'white marble tile floors',
+    'bamboo flooring', 'patterned cement tiles',
+  ];
+
+  const furnitureStyles = [
+    'mid-century modern furniture', 'minimalist low-profile furniture',
+    'vintage and antique pieces', 'plush velvet upholstery',
+    'rattan and wicker furniture', 'sleek metal and glass furniture',
+    'handcrafted artisan pieces', 'modular contemporary furniture',
+    'bohemian mixed textiles', 'Scandinavian functional pieces',
+  ];
+
+  const lightingStyles = [
+    'warm ambient pendant lights', 'dramatic spotlight accents',
+    'natural light through large windows', 'paper lantern lighting',
+    'industrial Edison bulb fixtures', 'recessed LED strip lighting',
+    'chandelier centerpiece', 'floor lamps with warm glow',
+  ];
+
+  const decor = [
+    'abundant indoor plants', 'curated art collection on walls',
+    'sculptural decorative objects', 'woven textile wall hangings',
+    'ceramic vases and pottery', 'books and floating shelves',
+    'candles and aromatic elements', 'minimal carefully chosen pieces',
+  ];
+
+  const atmosphere = pick(atmospheres);
+  const palette = pick(palettes);
+  const wall = pick(wallMaterials);
+  const floor = pick(floorMaterials);
+  const furniture = pick(furnitureStyles);
+  const lighting = pick(lightingStyles);
+  const decorItems = pickN(decor, 2).join(', ');
+
+  const prompt = `Interior design with a ${atmosphere} atmosphere, ${palette} color palette, ${wall}, ${floor}, ${furniture}, ${lighting}, decorated with ${decorItems}. Professional architectural rendering, cohesive and intentional design.`;
+
+  const presets = getStylePresets();
+  const randomPreset = pick(presets);
+
+  return {
+    id: 'random',
+    label: t('btn.randomStyle'),
+    description: prompt.slice(0, 80) + '...',
+    thumbnail: 'linear-gradient(135deg, #FF6B6B, #4ECDC4, #45B7D1)',
+    prompt,
+    scgProducts: randomPreset.scgProducts,
+  };
+}

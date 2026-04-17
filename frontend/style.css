@@ -479,6 +479,24 @@ main > section {
   color: var(--text);
 }
 
+.quiz-skip-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  margin-top: 32px;
+}
+
+.quiz-skip-actions .btn-text {
+  margin-top: 0;
+}
+
+.quiz-skip-sep {
+  color: var(--text-muted);
+  opacity: 0.3;
+  font-size: 14px;
+}
+
 
 /* ═══════════════════════════════════════════════════════════════════════════
    QUIZ
@@ -609,6 +627,7 @@ main > section {
 .room-summary {
   color: var(--text-muted);
   font-size: 13px;
+  max-width: 320px;
 }
 
 /* Responsive 3-column grid for style cards */

@@ -116,7 +116,9 @@ const UI_STRINGS: Record<string, Record<Lang, string>> = {
 
   // ── Button Labels ──
   'btn.tryAgain': { en: 'Try Again', th: 'ลองใหม่' },
-  'btn.skipQuiz': { en: 'Skip quiz \u2192 Browse all styles', th: 'ข้ามแบบสอบถาม \u2192 ดูสไตล์ทั้งหมด' },
+  'btn.skipQuiz': { en: 'Browse all styles', th: 'ดูสไตล์ทั้งหมด' },
+  'btn.randomStyle': { en: 'Random style', th: 'สุ่มสไตล์' },
+  'btn.randomStylePicker': { en: 'Random Style', th: 'สุ่มสไตล์' },
   'btn.retakeQuiz': { en: 'Retake Quiz', th: 'ทำแบบสอบถามใหม่' },
   'btn.uploadNew': { en: 'Upload New Image', th: 'อัปโหลดรูปใหม่' },
   'btn.regenerate': { en: 'Regenerate', th: 'สร้างใหม่' },
