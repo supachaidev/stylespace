@@ -1,13 +1,9 @@
 # Dependencies
 node_modules/
-__pycache__/
-*.pyc
 
 # Build output
-frontend/dist/
-
-# Environment
-backend/.env
+dist/
+.wrangler/
 
 # IDE
 .vscode/
@@ -17,11 +13,6 @@ backend/.env
 .DS_Store
 Thumbs.db
 
-# Output
-out.png
-
-# Render cache
-backend/.cache/
-
-# Local environment variables
+# Local environment variables (Wrangler reads from .dev.vars for local dev)
 .env
+.dev.vars

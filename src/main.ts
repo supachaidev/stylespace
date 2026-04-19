@@ -37,7 +37,13 @@
 import { getStylePresets, createCustomStyle, createRandomStyle } from './styles';
 import { getQuizQuestions, calculateResult, getMaxScore, type QuizResult } from './quiz';
 import { t, getLang, setLang, onLangChange } from './i18n';
+import { resizeImageFile } from './lib/resize';
 import type { StylePreset, AnalyzeResponse, RenderResponse } from './types';
+
+// Max image dimensions sent to each API. Matches the previous Python
+// backend's Pillow.resize() values. Smaller = cheaper Gemini/Claude calls.
+const ANALYZE_MAX_SIZE = 1024;  // Claude needs detail to read room labels
+const GENERATE_MAX_SIZE = 512;  // Gemini's floor-plan-to-render doesn't need high res
 
 
 // ─── Application State ──────────────────────────────────────────────────────
@@ -151,9 +157,11 @@ async function handleUpload(file: File): Promise<void> {
   updateLoadingText(t('loading.analyzing'), t('loading.analyzing.sub'));
 
   try {
-    // Call the backend to analyze the floor plan
+    // Resize in the browser before upload — keeps Claude tokens down and
+    // removes the need for server-side Pillow.
+    const resized = await resizeImageFile(file, ANALYZE_MAX_SIZE);
     const form = new FormData();
-    form.append('file', file);
+    form.append('file', resized);
     const res = await fetch('/api/analyze', { method: 'POST', body: form });
     const data = await res.json() as AnalyzeResponse;
 
@@ -264,8 +272,10 @@ async function generateFirstRender(style: StylePreset): Promise<void> {
   updateLoadingText(`${style.label}`, t('loading.generating'));
 
   try {
+    // Resize down to 512px for the Gemini call (same as the old Pillow path).
+    const resized = await resizeImageFile(uploadedFile, GENERATE_MAX_SIZE);
     const form = new FormData();
-    form.append('file', uploadedFile);
+    form.append('file', resized);
     form.append('style_prompt', style.prompt);
     form.append('room_data', JSON.stringify(currentAnalysis));
 
