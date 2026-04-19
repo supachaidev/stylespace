@@ -2,13 +2,13 @@
 
 **"All in" x SCG | Bangkok University Senior Project 2026**
 
-Upload a 2D floor plan and instantly explore it in different interior design styles — powered by AI.
+Upload a 2D floor plan and instantly explore it in different interior design styles — powered by AI. Deployed entirely on Cloudflare.
 
 ## How It Works
 
 1. **Upload** a floor plan image (JPG, PNG)
 2. **AI analyzes** the rooms using Claude (Anthropic)
-3. **Base render** is generated in Modern Minimal style using Gemini (Google)
+3. **Base render** is generated in your custom style using Gemini (Google)
 4. **Pick a style** — the base render is restyled while keeping the same room layout
 5. **Compare styles** — cached results let you switch instantly between generated styles
 
@@ -27,81 +27,95 @@ Upload a 2D floor plan and instantly explore it in different interior design sty
 
 | Layer | Technology |
 |---|---|
-| Backend | FastAPI (Python) |
-| Room Analysis | Claude Sonnet (Anthropic) |
-| Image Generation | Gemini 2.5 Flash (Google) |
+| Hosting | Cloudflare Pages |
+| API | Cloudflare Pages Functions (Workers runtime) |
+| Cache | Cloudflare KV (`STYLESPACE_RENDER_CACHE`) |
+| Room Analysis | Claude Sonnet (`@anthropic-ai/sdk`) |
+| Image Generation | Gemini 2.5 Flash Image (`@google/genai`) |
 | Frontend | TypeScript + Vite |
 
 ## Project Structure
 
 ```
-floorplan-3d/
-├── backend/
-│   ├── main.py            # FastAPI endpoints
-│   ├── analyze.py          # Claude Vision room detection
-│   ├── render.py           # Gemini image generation + restyling
-│   └── requirements.txt
-├── frontend/
-│   ├── index.html
-│   ├── style.css
-│   ├── vite.config.ts
-│   └── src/
-│       ├── main.ts         # Upload flow, style picker, history
-│       ├── styles.ts       # Style presets + SCG product mapping
-│       └── types.ts        # Shared TypeScript interfaces
-└── README.md
+stylespace/
+├── functions/
+│   ├── api/
+│   │   ├── analyze.ts      # POST /api/analyze  (Claude Vision)
+│   │   ├── generate.ts     # POST /api/generate (Gemini — first render)
+│   │   └── restyle.ts      # POST /api/restyle  (Gemini — restyle)
+│   └── _lib/
+│       ├── base64.ts       # Chunked base64 ↔ bytes (Workers-safe)
+│       ├── cache.ts        # KV render cache
+│       ├── env.ts          # Env bindings type
+│       ├── hash.ts         # WebCrypto SHA-256
+│       └── prompts.ts      # All Claude/Gemini prompt text
+├── src/
+│   ├── main.ts             # Upload flow, quiz, style picker, history
+│   ├── styles.ts           # Style presets + SCG product mapping
+│   ├── quiz.ts             # 6-question lifestyle quiz
+│   ├── i18n.ts             # TH/EN translations
+│   ├── types.ts            # Shared TypeScript interfaces
+│   └── lib/resize.ts       # Client-side image resize via Canvas
+├── index.html
+├── style.css
+├── vite.config.ts
+├── tsconfig.json           # Frontend
+├── tsconfig.functions.json # Workers runtime
+├── wrangler.toml           # Pages + KV binding
+└── package.json
 ```
 
 ## Setup
 
 ### Prerequisites
 
-- Python 3.11+
 - Node.js 18+
+- Cloudflare account (Workers Paid plan recommended for Gemini latency)
 - API keys for [Anthropic](https://console.anthropic.com/) and [Google AI](https://aistudio.google.com/)
 
 ### Install
 
 ```bash
-# Backend
-cd backend
-pip install -r requirements.txt
-cp .env.example .env
-# Add your ANTHROPIC_API_KEY and GOOGLE_API_KEY to .env
-
-# Frontend
-cd ../frontend
 npm install
+cp .dev.vars.example .dev.vars
+# Add your ANTHROPIC_API_KEY and GOOGLE_API_KEY to .dev.vars
 ```
+
+### Create the KV namespace
+
+```bash
+npx wrangler kv namespace create STYLESPACE_RENDER_CACHE
+npx wrangler kv namespace create STYLESPACE_RENDER_CACHE --preview
+```
+
+Paste the returned `id` and `preview_id` into `wrangler.toml`.
 
 ### Run (Development)
 
 ```bash
-# Terminal 1 — Backend
-cd backend
-uvicorn main:app --reload --port 8000
-
-# Terminal 2 — Frontend
-cd frontend
 npm run dev
 ```
 
-Open http://localhost:3000
+This runs Vite and `wrangler pages dev` in parallel:
+- Vite serves the frontend on **port 3000** with HMR and proxies `/api/*` to wrangler
+- Wrangler serves the Pages Functions in `functions/api/*` on port 8788
+- Open http://localhost:3000
 
-### Build (Production)
+### Deploy
 
 ```bash
-cd frontend && npm run build
-cd ../backend
-uvicorn main:app --port 8000
-# Serves frontend/dist/ as static files
+# One-time: push your secrets to Pages
+npx wrangler pages secret put ANTHROPIC_API_KEY
+npx wrangler pages secret put GOOGLE_API_KEY
+
+# Deploy
+npm run deploy
 ```
 
 ## API Endpoints
 
 | Method | Path | Description |
 |---|---|---|
-| POST | `/api/process` | Analyze rooms + generate base render |
-| POST | `/api/restyle` | Restyle base render into a new style |
-| POST | `/api/analyze` | Analyze rooms only |
-| POST | `/api/render` | Generate single style render |
+| POST | `/api/analyze` | Analyze rooms from a floor plan image |
+| POST | `/api/generate` | Generate first render from floor plan + style |
+| POST | `/api/restyle` | Restyle an existing render into a new style |

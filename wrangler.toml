@@ -1,0 +1,13 @@
+name = "stylespace"
+compatibility_date = "2025-01-15"
+compatibility_flags = ["nodejs_compat"]
+pages_build_output_dir = "./dist"
+
+# Render cache — keys are "{image_hash}_{prompt_hash}", values are base64 PNG strings.
+# The KV namespace ID must be filled in after running:
+#   npx wrangler kv namespace create STYLESPACE_RENDER_CACHE
+#   npx wrangler kv namespace create STYLESPACE_RENDER_CACHE --preview
+[[kv_namespaces]]
+binding = "STYLESPACE_RENDER_CACHE"
+id = "057419e165154074a98f27d800191eb0"
+preview_id = "58d7a16adb554fd3803642a8d7e84c83"

@@ -1,0 +1,8 @@
+# Local-only secrets for `wrangler pages dev`. Copy this file to `.dev.vars`
+# and fill in real values. `.dev.vars` is gitignored.
+#
+# For production, set these via:
+#   npx wrangler pages secret put ANTHROPIC_API_KEY
+#   npx wrangler pages secret put GOOGLE_API_KEY
+ANTHROPIC_API_KEY=
+GOOGLE_API_KEY=

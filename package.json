@@ -1,0 +1,27 @@
+{
+  "name": "stylespace",
+  "private": true,
+  "version": "0.2.0",
+  "type": "module",
+  "scripts": {
+    "predev": "mkdir -p dist",
+    "dev": "concurrently -n web,api -c cyan,magenta \"npm:dev:web\" \"npm:dev:api\"",
+    "dev:web": "vite",
+    "dev:api": "wrangler pages dev --port 8788 --live-reload",
+    "build": "tsc -p tsconfig.json && vite build",
+    "check": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.functions.json --noEmit",
+    "preview": "npm run build && wrangler pages dev",
+    "deploy": "npm run build && wrangler pages deploy ./dist"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.40.0",
+    "@google/genai": "^0.6.0"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20250119.0",
+    "concurrently": "^9.1.0",
+    "typescript": "^5.5.0",
+    "vite": "^5.4.0",
+    "wrangler": "^4.83.0"
+  }
+}
