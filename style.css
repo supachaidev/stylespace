@@ -1,308 +1,534 @@
 /*
- * style.css — StyleSpace Visual Design System
- * ==============================================
+ * style.css — StyleSpace · Apple HIG
+ * ====================================
  *
- * This stylesheet defines the complete visual identity for StyleSpace.
- * It uses a dark theme with glassmorphism effects, inspired by modern
- * design tools like Figma and Linear.
+ * A native-feeling design system built on Apple's Human Interface Guidelines.
+ *   • Typography  — SF Pro Display / SF Pro Text via -apple-system, with the
+ *     full Apple type scale (Large Title, Title 1/2/3, Headline, Body…).
+ *   • Color       — iOS system semantic colors. Three-level label hierarchy
+ *     (label / secondaryLabel / tertiaryLabel) and a layered background
+ *     hierarchy. Adapts automatically to prefers-color-scheme.
+ *   • Materials   — Subtle vibrancy on floating toolbars (saturate + blur).
+ *   • Controls    — Filled prominent buttons, gray secondary buttons, plain
+ *     text links. iOS Settings-style grouped list for the quiz.
+ *   • Motion      — Gentle spring easing. 0.3s defaults.
+ *   • Radii       — 14–18px on cards, 14px on buttons, 10–12px on small
+ *     surfaces. Continuous-corner aesthetic.
  *
- * Design Tokens (CSS Custom Properties):
- *   --bg:          Near-black background (#060608)
- *   --surface:     Translucent white overlay for cards/panels
- *   --border:      Subtle white borders at 8% opacity
- *   --accent:      SCG brand red-orange (#E8401C) — primary action color
- *   --accent-gold: Warm gold (#F5A623) — used in gradients with accent
- *   --text:        Off-white text (#F0F0F0)
- *   --text-muted:  Gray text (#9A9AA0) for secondary content
- *
- * Key visual patterns:
- *   - Glassmorphism: backdrop-filter blur + translucent backgrounds
- *   - Ambient glow: Soft red radial gradient behind the header
- *   - fadeUp animation: Content slides up and fades in when sections appear
- *   - Accent hover effects: Elements lift (translateY) and glow on hover
- *
- * Responsive breakpoints:
- *   - 768px: Tablet (2-column grid, stacked headers)
- *   - 480px: Mobile (1-column grid, smaller text)
+ * The brand tint is SCG terracotta — used as the system tint, equivalent to
+ * how iOS apps set a custom .accentColor.
  */
 
 
-/* ─── Design Tokens ──────────────────────────────────────────────────────── */
+/* ─── Tokens — Dark Mode (default) ───────────────────────────────────────── */
 
 :root {
-  --bg: #060608;
-  --surface: rgba(255, 255, 255, 0.04);
-  --surface-solid: #111113;                /* Non-transparent surface (for overlays) */
-  --border: rgba(255, 255, 255, 0.08);
-  --border-hover: rgba(255, 255, 255, 0.15);
-  --accent: #E8401C;                        /* SCG brand red-orange */
-  --accent-soft: rgba(232, 64, 28, 0.15);  /* Accent at low opacity (backgrounds) */
-  --accent-gold: #F5A623;                   /* Gold for gradients */
-  --text: #F0F0F0;
-  --text-muted: #9A9AA0;
-  --font: 'Inter', sans-serif;
-  --radius: 16px;                           /* Large border radius for cards */
-  --radius-sm: 12px;                        /* Smaller radius for buttons */
-  --transition: 0.25s cubic-bezier(0.4, 0, 0.2, 1); /* Smooth ease-out */
+  /* Background hierarchy (iOS systemBackground stack) */
+  --bg:              #000000;
+  --surface:         #1C1C1E;   /* secondarySystemBackground */
+  --surface-2:       #2C2C2E;   /* tertiarySystemBackground */
+  --surface-3:       #3A3A3C;   /* quaternarySystemBackground */
+  --surface-grouped: #1C1C1E;   /* secondarySystemGroupedBackground */
+
+  /* Label hierarchy (semantic text colors via opacity) */
+  --label:    rgba(255, 255, 255, 1);
+  --label-2:  rgba(235, 235, 245, 0.60);
+  --label-3:  rgba(235, 235, 245, 0.30);
+  --label-4:  rgba(235, 235, 245, 0.18);
+
+  /* Fills (used for buttons, controls, hover states) */
+  --fill-1:   rgba(120, 120, 128, 0.36);   /* systemFill */
+  --fill-2:   rgba(120, 120, 128, 0.32);   /* secondarySystemFill */
+  --fill-3:   rgba(118, 118, 128, 0.24);   /* tertiarySystemFill */
+  --fill-4:   rgba(118, 118, 128, 0.18);   /* quaternarySystemFill */
+
+  /* Separators */
+  --separator:        rgba(84, 84, 88, 0.65);
+  --separator-opaque: #38383A;
+
+  /* Brand tint (SCG red, brightened for dark-mode contrast per HIG) */
+  --tint:          #FF6347;
+  --tint-pressed:  #E8401C;
+  --tint-bg:       rgba(255, 99, 71, 0.18);
+  --tint-bg-soft:  rgba(255, 99, 71, 0.10);
+
+  /* iOS system colors used selectively */
+  --system-red:    #FF453A;
+  --system-orange: #FF9F0A;
+  --system-blue:   #0A84FF;
+  --system-green:  #30D158;
+
+  /* Vibrancy material — for floating toolbars */
+  --material-thin:  rgba(28, 28, 30, 0.72);
+
+  /* Type stack — Noto Sans Thai (Thai chars, via unicode-range), SF Pro on
+     Apple, Inter elsewhere. Putting Noto Sans Thai first guarantees Thai
+     uses it on every platform; Latin falls through because Google's
+     unicode-range restricts the family to U+0E01–0E5B. */
+  --font-system: 'Noto Sans Thai', -apple-system, BlinkMacSystemFont,
+                 'SF Pro Display', 'SF Pro Text', 'Inter',
+                 system-ui, 'Segoe UI', Roboto, sans-serif;
+
+  /* Apple type scale (sizes / line-height / tracking) */
+  --type-large-title-size:   34px;
+  --type-large-title-lh:     41px;
+  --type-large-title-track:  -0.022em;
+
+  --type-title-1-size:       28px;
+  --type-title-1-lh:         34px;
+  --type-title-1-track:      -0.013em;
+
+  --type-title-2-size:       22px;
+  --type-title-2-lh:         28px;
+  --type-title-2-track:      -0.016em;
+
+  --type-title-3-size:       20px;
+  --type-title-3-lh:         25px;
+  --type-title-3-track:      -0.019em;
+
+  --type-headline-size:      17px;
+  --type-headline-lh:        22px;
+  --type-headline-track:     -0.025em;
+
+  --type-body-size:          17px;
+  --type-body-lh:            22px;
+  --type-body-track:         -0.025em;
+
+  --type-callout-size:       16px;
+  --type-callout-lh:         21px;
+  --type-callout-track:      -0.020em;
+
+  --type-subhead-size:       15px;
+  --type-subhead-lh:         20px;
+  --type-subhead-track:      -0.016em;
+
+  --type-footnote-size:      13px;
+  --type-footnote-lh:        18px;
+  --type-footnote-track:     -0.006em;
+
+  --type-caption-size:       12px;
+  --type-caption-lh:         16px;
+  --type-caption-track:      0;
+
+  /* Radii — Apple's continuous-corner aesthetic */
+  --radius-card:     18px;     /* large cards, hero surfaces */
+  --radius-grouped:  14px;     /* grouped list containers */
+  --radius-control:  14px;     /* buttons, pill controls */
+  --radius-small:    10px;     /* compact surfaces */
+  --radius-image:    14px;     /* images inside cards */
+  --radius-pill:     980px;    /* fully rounded capsules */
+
+  /* Easing & duration — iOS spring feel */
+  --ease-snappy: cubic-bezier(0.32, 0.72, 0, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+  --duration:    0.3s;
+
+  /* Shadow — soft, low Y, neutral. Apple keeps shadows subtle. */
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.18), 0 4px 14px rgba(0, 0, 0, 0.18);
+  --shadow-2: 0 4px 12px rgba(0, 0, 0, 0.30), 0 12px 36px rgba(0, 0, 0, 0.32);
+}
+
+
+/* ─── Tokens — Light Mode override ─────────────────────────────────────────
+   Active when <html data-theme="light"> (set by the inline boot script
+   in index.html, which seeds from localStorage or prefers-color-scheme). */
+
+:root[data-theme="light"] {
+  --bg:              #F2F2F7;   /* systemGroupedBackground */
+  --surface:         #FFFFFF;   /* secondarySystemGroupedBackground */
+  --surface-2:       #F2F2F7;   /* tertiary */
+  --surface-3:       #E5E5EA;
+  --surface-grouped: #FFFFFF;
+
+  --label:    rgba(0, 0, 0, 1);
+  --label-2:  rgba(60, 60, 67, 0.60);
+  --label-3:  rgba(60, 60, 67, 0.30);
+  --label-4:  rgba(60, 60, 67, 0.18);
+
+  --fill-1:   rgba(120, 120, 128, 0.20);
+  --fill-2:   rgba(120, 120, 128, 0.16);
+  --fill-3:   rgba(118, 118, 128, 0.12);
+  --fill-4:   rgba(116, 116, 128, 0.08);
+
+  --separator:        rgba(60, 60, 67, 0.29);
+  --separator-opaque: #C6C6C8;
+
+  --tint:         #E8401C;          /* SCG red plays well on white */
+  --tint-pressed: #C0341A;
+  --tint-bg:      rgba(232, 64, 28, 0.10);
+  --tint-bg-soft: rgba(232, 64, 28, 0.06);
+
+  --material-thin: rgba(255, 255, 255, 0.72);
+
+  --shadow-1: 0 1px 2px rgba(60, 60, 67, 0.10), 0 4px 14px rgba(60, 60, 67, 0.08);
+  --shadow-2: 0 4px 12px rgba(60, 60, 67, 0.12), 0 12px 36px rgba(60, 60, 67, 0.16);
 }
 
 
 /* ─── Reset & Base ───────────────────────────────────────────────────────── */
 
-* {
+*,
+*::before,
+*::after {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
 }
 
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
 body {
   background: var(--bg);
-  color: var(--text);
-  font-family: var(--font);
-  min-height: 100vh;
-  line-height: 1.6;
-  font-size: 16px;
-  overflow-x: hidden;  /* Prevent horizontal scroll from glow effects */
+  color: var(--label);
+  font-family: var(--font-system);
+  font-size: var(--type-body-size);
+  line-height: var(--type-body-lh);
+  letter-spacing: var(--type-body-track);
+  font-weight: 400;
+  min-height: 100dvh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: 'kern', 'liga', 'cv11', 'ss01';
+  overflow-x: hidden;
+}
+
+::selection {
+  background: var(--tint);
+  color: #FFFFFF;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 
-/* ─── Ambient Background Glow ────────────────────────────────────────────── */
-/* A large, soft radial gradient fixed behind all content.
-   Creates a warm atmosphere without being distracting.
-   The glow is centered at the top of the page and uses the
-   accent color at very low opacity (8%). */
+/* ─── Typography Primitives ──────────────────────────────────────────────── */
 
-.bg-glow {
-  position: fixed;
-  top: -40%;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 800px;
-  height: 600px;
-  background: radial-gradient(ellipse, rgba(232, 64, 28, 0.08) 0%, transparent 70%);
-  pointer-events: none;  /* Click-through — doesn't interfere with interaction */
-  z-index: 0;
+h1, h2, h3, h4 {
+  color: var(--label);
+  font-family: var(--font-system);
+  letter-spacing: var(--type-large-title-track);
+  text-wrap: balance;
+}
+
+p {
+  text-wrap: pretty;
 }
 
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   HEADER
-   Contains logo, title, tagline, home button, and language toggle.
+   HEADER — top toolbar + Large Title
    ═══════════════════════════════════════════════════════════════════════════ */
 
 header {
-  text-align: center;
-  padding: 48px 24px 24px;
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 16px 24px 0;
   position: relative;
   z-index: 1;
 }
 
-/* Home button and language toggle — positioned at top-right of header */
-.header-actions {
-  position: absolute;
-  top: 16px;
-  right: 24px;
+/* iOS-style toolbar: brand on the left, controls on the right.
+   Sits inside a thin vibrancy material on dark mode. */
+.toolbar {
   display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  border-radius: var(--radius-control);
+  margin-bottom: 56px;
+  background: var(--material-thin);
+  backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  border: 0.5px solid var(--separator);
+}
+
+.logo {
+  display: inline-flex;
   align-items: center;
   gap: 10px;
-}
-
-.btn-home {
-  padding: 8px 20px;
-  font-size: 13px;
-}
-
-/* Language toggle — circular button showing flag emoji */
-.lang-toggle {
-  background: var(--surface);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid var(--border);
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  cursor: pointer;
-  font-size: 22px;
-  line-height: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: border-color var(--transition), transform var(--transition);
-  padding: 0;
-}
-
-.lang-toggle:hover {
-  border-color: var(--accent);
-  transform: scale(1.1);
-}
-
-/* Logo: "SCG × All in" — clickable, returns to upload page */
-.logo {
-  font-size: 20px;
-  margin-bottom: 12px;
-  letter-spacing: 1px;
-  text-transform: uppercase;
   text-decoration: none;
-  display: inline-block;
-  cursor: pointer;
-  transition: opacity var(--transition);
+  color: var(--label);
+  padding: 4px 6px;
+  border-radius: var(--radius-small);
+  transition: background var(--duration) var(--ease-smooth);
 }
 
 .logo:hover {
-  opacity: 0.8;
+  background: var(--fill-3);
 }
 
-/* "SCG" in bold accent color */
+.logo:active {
+  background: var(--fill-2);
+}
+
+/* App icon mark — rounded square with stylized "S" */
+.logo-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  color: var(--tint);
+  flex-shrink: 0;
+}
+
+.logo-text {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: var(--type-subhead-size);
+  line-height: 1;
+  font-weight: 600;
+  letter-spacing: var(--type-subhead-track);
+}
+
 .logo-scg {
-  font-weight: 800;
-  color: var(--accent);
+  color: var(--label);
+  font-weight: 700;
 }
 
-/* "×" separator between SCG and All in */
 .logo-sep {
-  color: var(--text-muted);
-  margin: 0 6px;
-  opacity: 0.5;
+  color: var(--label-3);
+  font-weight: 400;
 }
 
-/* "All in" with gradient text (gold → red) */
 .logo-allin {
-  font-style: italic;
-  background: linear-gradient(135deg, var(--accent-gold), var(--accent));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  font-weight: 700;
+  color: var(--label-2);
+  font-weight: 600;
 }
 
-/* App title — large text with subtle vertical gradient (white → gray) */
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Floating actions pinned to the top-right corner of the viewport. */
+.floating-actions {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  z-index: 10;
+}
+
+.btn-home {
+  /* Compact variant of secondary button */
+  height: 32px;
+  padding: 0 14px;
+  font-size: var(--type-footnote-size);
+  margin-top: 16px;
+}
+
+/* Language & theme toggles — circular avatar buttons.
+   iOS-style: small circle, fill background, scales on press. */
+.lang-toggle,
+.theme-toggle {
+  background: var(--fill-3);
+  border: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 18px;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  color: var(--label);
+  transition: background var(--duration) var(--ease-smooth),
+              transform 120ms var(--ease-snappy);
+}
+
+.lang-toggle:hover,
+.theme-toggle:hover {
+  background: var(--fill-2);
+}
+
+.lang-toggle:active,
+.theme-toggle:active {
+  transform: scale(0.94);
+  background: var(--fill-1);
+}
+
+.theme-toggle svg {
+  display: block;
+  color: var(--label-2);
+}
+
+/* Hero — large title + subtitle, centered. */
+.hero {
+  padding: 64px 0 32px;
+  text-align: center;
+}
+
 header h1 {
-  font-size: 42px;
+  font-size: clamp(40px, 6vw, 56px);
+  line-height: 1.05;
   font-weight: 700;
-  letter-spacing: -1px;
+  letter-spacing: -0.024em;
+  color: var(--label);
   margin-bottom: 8px;
-  background: linear-gradient(180deg, #FFFFFF 40%, #888888 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
 }
 
 .tagline {
-  color: var(--text-muted);
-  font-size: 17px;
+  font-size: var(--type-title-3-size);
+  line-height: var(--type-title-3-lh);
+  letter-spacing: var(--type-title-3-track);
   font-weight: 400;
+  color: var(--label-2);
+  max-width: 38ch;
+  margin: 0 auto;
 }
 
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   MAIN CONTENT AREA
-   Centered container with max-width for comfortable reading on large screens.
+   MAIN
    ═══════════════════════════════════════════════════════════════════════════ */
 
 main {
-  max-width: 1100px;
+  max-width: 1080px;
   margin: 0 auto;
-  padding: 24px;
+  padding: 0 24px 64px;
   position: relative;
   z-index: 1;
 }
 
-/* All sections animate in with a slide-up fade effect */
+/* iOS-style content fade with a tiny scale. Mirrors a sheet presentation. */
 main > section {
-  animation: fadeUp 0.4s ease-out;
+  animation: contentEnter 0.45s var(--ease-snappy) both;
 }
 
-@keyframes fadeUp {
-  from { opacity: 0; transform: translateY(12px); }
-  to { opacity: 1; transform: translateY(0); }
+@keyframes contentEnter {
+  from { opacity: 0; transform: translateY(6px) scale(0.99); }
+  to   { opacity: 1; transform: translateY(0)    scale(1); }
 }
 
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   UPLOAD ZONE
-   A dashed-border drop zone for floor plan images.
-   Supports click-to-browse and drag-and-drop.
+   UPLOAD — Files-app-style empty state inside a rounded surface
    ═══════════════════════════════════════════════════════════════════════════ */
 
 #upload-zone {
-  height: 340px;
-  border: 2px dashed rgba(255, 255, 255, 0.12);
-  border-radius: var(--radius);
+  position: relative;
+  height: 360px;
+  border-radius: var(--radius-card);
+  background: var(--surface);
+  background-image: radial-gradient(120% 80% at 50% 0%, var(--tint-bg-soft), transparent 55%);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: border-color var(--transition), background var(--transition), box-shadow var(--transition);
-  background: var(--surface);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  /* Hairline border via inset shadow stays crisp on hi-DPI; soft elevation below. */
+  box-shadow:
+    inset 0 0 0 0.5px var(--separator),
+    var(--shadow-1);
+  transition: background-color var(--duration) var(--ease-smooth),
+              box-shadow var(--duration) var(--ease-smooth),
+              transform 200ms var(--ease-snappy);
+  overflow: hidden;
 }
 
-/* Hover state — slightly brighter border and background */
 #upload-zone:hover {
-  border-color: rgba(255, 255, 255, 0.25);
-  background: rgba(255, 255, 255, 0.06);
+  box-shadow:
+    inset 0 0 0 0.5px var(--label-3),
+    var(--shadow-2);
+  transform: translateY(-2px);
 }
 
-/* Active drag-over state — accent color highlight with glow */
+#upload-zone:active {
+  transform: translateY(0) scale(0.997);
+  box-shadow:
+    inset 0 0 0 0.5px var(--separator),
+    var(--shadow-1);
+}
+
 #upload-zone.drag-over {
-  border-color: var(--accent);
-  background: var(--accent-soft);
-  box-shadow: 0 0 40px rgba(232, 64, 28, 0.15);
+  background-color: var(--tint-bg);
+  box-shadow:
+    inset 0 0 0 1.5px var(--tint),
+    0 0 0 6px var(--tint-bg-soft),
+    var(--shadow-2);
+  transform: translateY(-2px);
 }
 
-/* Upload icon with animated pulsing ring */
 .upload-icon-wrapper {
   position: relative;
-  width: 80px;
-  height: 80px;
+  width: 72px;
+  height: 72px;
   display: flex;
   align-items: center;
   justify-content: center;
   margin-bottom: 20px;
+  border-radius: var(--radius-control);
+  background: linear-gradient(135deg, var(--tint-bg) 0%, var(--fill-4) 100%);
+  box-shadow: inset 0 0 0 0.5px var(--separator);
+  color: var(--tint);
+  transition: transform var(--duration) var(--ease-spring),
+              background var(--duration) var(--ease-smooth),
+              box-shadow var(--duration) var(--ease-smooth);
 }
 
-/* Pulsing ring animation — expands and fades out */
+#upload-zone:hover .upload-icon-wrapper {
+  transform: translateY(-2px);
+  background: linear-gradient(135deg, var(--tint-bg) 0%, var(--tint-bg-soft) 100%);
+  box-shadow: inset 0 0 0 0.5px var(--tint);
+}
+
 .upload-icon-ring {
   position: absolute;
-  inset: 0;
-  border-radius: 50%;
-  border: 2px solid rgba(255, 255, 255, 0.08);
-  animation: pulseRing 3s ease-in-out infinite;
+  inset: -4px;
+  border-radius: calc(var(--radius-control) + 4px);
+  border: 1.5px solid var(--tint);
+  opacity: 0;
+  animation: pulseRing 2.4s var(--ease-smooth) infinite;
 }
 
 @keyframes pulseRing {
-  0%, 100% { transform: scale(1); opacity: 0.5; }
-  50% { transform: scale(1.15); opacity: 0; }
+  0%   { transform: scale(0.96); opacity: 0; }
+  40%  { opacity: 0.5; }
+  100% { transform: scale(1.12); opacity: 0; }
 }
 
 .upload-icon {
-  font-size: 32px;
-  opacity: 0.5;
-  transition: opacity var(--transition);
-}
-
-#upload-zone:hover .upload-icon {
-  opacity: 0.8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .upload-text {
-  font-size: 20px;
-  font-weight: 600;
+  font-size: var(--type-title-2-size);
+  line-height: var(--type-title-2-lh);
+  letter-spacing: var(--type-title-2-track);
+  font-weight: 700;
+  color: var(--label);
   margin-bottom: 6px;
+  text-align: center;
 }
 
 .upload-subtext {
-  color: var(--text-muted);
-  font-size: 15px;
+  font-size: var(--type-subhead-size);
+  line-height: var(--type-subhead-lh);
+  letter-spacing: var(--type-subhead-track);
+  color: var(--label-2);
+  font-weight: 400;
 }
 
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   LOADING STATE
-   Glassmorphism card with animated "AI-style" loader bars.
-   Shown during API calls — text is updated dynamically by main.ts.
+   LOADING — iOS activity indicator (8 lines around a circle)
    ═══════════════════════════════════════════════════════════════════════════ */
 
 #loading-section {
@@ -310,70 +536,73 @@ main > section {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-height: 340px;
+  min-height: 360px;
 }
 
 .loading-card {
   text-align: center;
-  padding: 48px 64px;
-  border-radius: var(--radius);
+  padding: 56px 64px;
+  border-radius: var(--radius-card);
   background: var(--surface);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid var(--border);
+  box-shadow: var(--shadow-1);
+  max-width: 440px;
+  width: 100%;
 }
 
-/* AI-style loader: 4 bars that pulse in height like an audio visualizer */
+/* AI-style audio-visualizer loader — four vertical bars whose heights
+   pulse in a staggered wave. Matches the loader from the original
+   StyleSpace design; tinted with the current system tint. */
 .ai-loader {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
   height: 48px;
-  margin-bottom: 24px;
+  margin: 0 auto 24px;
 }
 
 .ai-loader-bar {
   width: 4px;
   height: 12px;
   border-radius: 4px;
-  background: var(--accent);
+  background: var(--tint);
   animation: aiPulse 1.2s ease-in-out infinite;
 }
 
-/* Staggered animation delay creates a wave effect across the bars */
 .ai-loader-bar:nth-child(1) { animation-delay: 0s; }
 .ai-loader-bar:nth-child(2) { animation-delay: 0.15s; }
 .ai-loader-bar:nth-child(3) { animation-delay: 0.3s; }
 .ai-loader-bar:nth-child(4) { animation-delay: 0.45s; }
 
 @keyframes aiPulse {
-  0%, 100% {
-    height: 12px;
-    opacity: 0.4;
-  }
-  50% {
-    height: 36px;
-    opacity: 1;
-  }
+  0%, 100% { height: 12px; opacity: 0.4; }
+  50%      { height: 36px; opacity: 1; }
+}
+
+/* Reused by .thumb-spinner and .overlay-content .spinner */
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
 
 .loading-text {
-  font-size: 20px;
+  font-size: var(--type-headline-size);
+  line-height: var(--type-headline-lh);
+  letter-spacing: var(--type-headline-track);
   font-weight: 600;
-  margin-bottom: 6px;
+  color: var(--label);
+  margin-bottom: 4px;
 }
 
 .loading-subtext {
-  color: var(--text-muted);
-  font-size: 15px;
+  font-size: var(--type-subhead-size);
+  line-height: var(--type-subhead-lh);
+  letter-spacing: var(--type-subhead-track);
+  color: var(--label-2);
 }
 
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   ERROR STATE
-   Card with exclamation icon, error message, and retry button.
-   The border uses a tinted accent color to signal the error state.
+   ERROR — alert-style card
    ═══════════════════════════════════════════════════════════════════════════ */
 
 #error-section {
@@ -381,27 +610,25 @@ main > section {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-height: 340px;
+  min-height: 360px;
 }
 
 .error-card {
   text-align: center;
-  padding: 48px;
-  border-radius: var(--radius);
+  padding: 40px 48px;
+  border-radius: var(--radius-card);
   background: var(--surface);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(232, 64, 28, 0.2);  /* Red-tinted border */
+  box-shadow: var(--shadow-1);
+  max-width: 420px;
+  width: 100%;
 }
 
 .error-icon {
-  width: 48px;
-  height: 48px;
+  width: 56px;
+  height: 56px;
   border-radius: 50%;
-  background: var(--accent-soft);
-  color: var(--accent);
-  font-size: 24px;
-  font-weight: 700;
+  background: var(--tint-bg);
+  color: var(--tint);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -409,383 +636,498 @@ main > section {
 }
 
 .error-text {
-  color: var(--text-muted);
-  font-size: 17px;
+  font-size: var(--type-callout-size);
+  line-height: var(--type-callout-lh);
+  letter-spacing: var(--type-callout-track);
+  color: var(--label);
+  font-weight: 400;
   margin-bottom: 24px;
 }
 
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   BUTTONS
-   Three button variants:
-     - .btn-primary: Solid accent background (main actions)
-     - .btn-secondary: Transparent with border (secondary actions)
-     - .btn-text: No background/border (tertiary, like "skip quiz")
+   BUTTONS — Apple HIG variants
+   .btn-primary    Filled prominent — tint background, white label
+   .btn-secondary  Gray — fill background, label color
+   .btn-text       Plain — tint label, no chrome
    ═══════════════════════════════════════════════════════════════════════════ */
 
 .btn-primary {
-  background: var(--accent);
-  color: white;
-  padding: 12px 32px;
-  border-radius: var(--radius-sm);
+  background: var(--tint);
+  color: #FFFFFF;
+  height: 44px;
+  padding: 0 22px;
   border: none;
+  border-radius: var(--radius-control);
   cursor: pointer;
-  font-size: 15px;
+  font-family: var(--font-system);
+  font-size: var(--type-headline-size);
   font-weight: 600;
-  font-family: var(--font);
-  transition: transform var(--transition), box-shadow var(--transition);
+  letter-spacing: var(--type-headline-track);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background var(--duration) var(--ease-smooth),
+              transform 120ms var(--ease-snappy),
+              box-shadow var(--duration) var(--ease-smooth);
 }
 
 .btn-primary:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 20px rgba(232, 64, 28, 0.4);
+  background: var(--tint-pressed);
+}
+
+.btn-primary:active {
+  transform: scale(0.97);
+  background: var(--tint-pressed);
 }
 
 .btn-secondary {
-  padding: 10px 24px;
-  background: var(--surface);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  color: var(--text-muted);
+  background: var(--fill-3);
+  color: var(--label);
+  height: 36px;
+  padding: 0 16px;
+  border: none;
+  border-radius: var(--radius-control);
   cursor: pointer;
-  font-size: 15px;
-  font-weight: 500;
-  font-family: var(--font);
-  transition: border-color var(--transition), color var(--transition), transform var(--transition);
+  font-family: var(--font-system);
+  font-size: var(--type-subhead-size);
+  font-weight: 600;
+  letter-spacing: var(--type-subhead-track);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background var(--duration) var(--ease-smooth),
+              transform 120ms var(--ease-snappy);
 }
 
 .btn-secondary:hover {
-  border-color: var(--border-hover);
-  color: var(--text);
-  transform: translateY(-1px);
+  background: var(--fill-2);
 }
 
+.btn-secondary:active {
+  transform: scale(0.97);
+  background: var(--fill-1);
+}
 
+/* Plain text link — iOS uses tint color, no underline */
 .btn-text {
   background: none;
   border: none;
-  color: var(--text-muted);
-  font-size: 15px;
-  font-family: var(--font);
+  color: var(--tint);
+  font-family: var(--font-system);
+  font-size: var(--type-subhead-size);
+  font-weight: 500;
+  letter-spacing: var(--type-subhead-track);
   cursor: pointer;
-  margin-top: 32px;
-  padding: 8px 16px;
-  transition: color var(--transition);
+  padding: 8px 12px;
+  border-radius: var(--radius-small);
+  transition: background var(--duration) var(--ease-smooth),
+              opacity 120ms var(--ease-snappy);
 }
 
 .btn-text:hover {
-  color: var(--text);
+  background: var(--tint-bg-soft);
+}
+
+.btn-text:active {
+  opacity: 0.55;
 }
 
 .quiz-skip-actions {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 4px;
+  gap: 6px;
   margin-top: 32px;
 }
 
-.quiz-skip-actions .btn-text {
-  margin-top: 0;
-}
-
 .quiz-skip-sep {
-  color: var(--text-muted);
-  opacity: 0.3;
-  font-size: 14px;
+  color: var(--label-3);
+  font-size: var(--type-subhead-size);
 }
 
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   QUIZ
-   The 6-question lifestyle quiz. Each question is shown one at a time
-   with animated transitions. The progress bar uses a gradient from
-   accent red to gold.
+   QUIZ — Settings-app-style grouped list
    ═══════════════════════════════════════════════════════════════════════════ */
 
 .quiz-container {
-  max-width: 680px;
+  max-width: 580px;
   margin: 0 auto;
   text-align: center;
 }
 
-/* Thin progress bar at the top of the quiz */
+/* iOS-style thin progress bar */
 .quiz-progress {
   width: 100%;
   height: 4px;
-  background: var(--border);
+  background: var(--fill-3);
   border-radius: 2px;
-  margin-bottom: 40px;
+  margin-bottom: 32px;
   overflow: hidden;
 }
 
-/* Animated fill bar — width is set by JavaScript as questions advance */
 .quiz-progress-bar {
   height: 100%;
-  background: linear-gradient(90deg, var(--accent), var(--accent-gold));
+  background: var(--tint);
   border-radius: 2px;
-  transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: width 0.5s var(--ease-snappy);
   width: 0%;
-  box-shadow: 0 0 12px rgba(232, 64, 28, 0.4);  /* Subtle glow on the bar */
 }
 
-/* Step indicator: "QUESTION 3 OF 6" */
 .quiz-step {
-  color: var(--text-muted);
-  font-size: 14px;
-  margin-bottom: 8px;
+  font-size: var(--type-footnote-size);
+  line-height: var(--type-footnote-lh);
+  letter-spacing: var(--type-footnote-track);
+  font-weight: 600;
+  color: var(--tint);
   text-transform: uppercase;
-  letter-spacing: 1px;
-  font-weight: 500;
+  margin-bottom: 8px;
 }
 
 .quiz-question {
-  font-size: 28px;
+  font-size: var(--type-title-1-size);
+  line-height: var(--type-title-1-lh);
+  letter-spacing: var(--type-title-1-track);
   font-weight: 700;
-  margin-bottom: 36px;
-  line-height: 1.3;
+  color: var(--label);
+  margin-bottom: 28px;
 }
 
+/* The grouped list container — single rounded surface holding all options
+   like the iOS Settings app. Dividers between rows are inset on the left. */
 .quiz-options {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  background: var(--surface);
+  border-radius: var(--radius-grouped);
+  overflow: hidden;
+  box-shadow: var(--shadow-1);
 }
 
-/* Individual quiz option — emoji icon on the left, text on the right */
 .quiz-option {
   display: flex;
   align-items: center;
-  gap: 16px;
-  padding: 18px 24px;
-  background: var(--surface);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
+  gap: 14px;
+  padding: 14px 18px;
+  background: transparent;
+  border: none;
   cursor: pointer;
-  transition: border-color var(--transition), transform var(--transition), background var(--transition), box-shadow var(--transition);
+  font-family: var(--font-system);
   text-align: left;
-  color: var(--text);
-  font-family: var(--font);
+  color: var(--label);
+  position: relative;
+  transition: background 120ms var(--ease-smooth);
+  min-height: 52px;
 }
 
-/* Hover: subtle slide-right effect to indicate interactivity */
+/* Divider between rows — inset from the left to clear the icon, like iOS */
+.quiz-option + .quiz-option::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 60px;
+  right: 0;
+  height: 0.5px;
+  background: var(--separator);
+}
+
 .quiz-option:hover {
-  border-color: var(--border-hover);
-  transform: translateX(4px);
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--fill-3);
 }
 
-/* Selected state: accent border with soft glow */
+.quiz-option:active {
+  background: var(--fill-2);
+}
+
 .quiz-option.selected {
-  border-color: var(--accent);
-  background: var(--accent-soft);
-  box-shadow: 0 0 24px rgba(232, 64, 28, 0.15);
+  background: var(--tint-bg);
+}
+
+/* Selected state shows an SF-Symbols-style checkmark on the right */
+.quiz-option.selected::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  right: 18px;
+  width: 22px;
+  height: 22px;
+  transform: translateY(-50%);
+  background-color: var(--tint);
+  -webkit-mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 22 22' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'><path d='M4 11.5 L9 16.5 L18 6.5'/></svg>");
+          mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 22 22' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'><path d='M4 11.5 L9 16.5 L18 6.5'/></svg>");
+  -webkit-mask-repeat: no-repeat;
+          mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+          mask-position: center;
+  -webkit-mask-size: 22px;
+          mask-size: 22px;
+  animation: checkPop 320ms var(--ease-spring) both;
+}
+
+@keyframes checkPop {
+  from { transform: translateY(-50%) scale(0.4); opacity: 0; }
+  to   { transform: translateY(-50%) scale(1);   opacity: 1; }
 }
 
 .quiz-option-icon {
-  font-size: 28px;
-  width: 44px;
+  font-size: 24px;
+  line-height: 1;
+  width: 32px;
   text-align: center;
   flex-shrink: 0;
 }
 
 .quiz-option-label {
-  font-size: 17px;
-  font-weight: 500;
+  font-size: var(--type-body-size);
+  line-height: var(--type-body-lh);
+  letter-spacing: var(--type-body-track);
+  font-weight: 400;
+  color: var(--label);
+  flex: 1;
 }
 
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   STYLE PICKER
-   Grid of style cards. Each card has a thumbnail (gradient or cached render),
-   style name, description, and optional match percentage badge.
+   STYLE PICKER — Photos-app-style grid
    ═══════════════════════════════════════════════════════════════════════════ */
 
-/* Header: title + room summary on the left, action buttons on the right */
 .styles-header {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 32px;
+  align-items: flex-end;
+  gap: 24px;
+  margin-bottom: 28px;
 }
 
 .styles-header h2 {
-  font-size: 28px;
+  font-size: var(--type-large-title-size);
+  line-height: var(--type-large-title-lh);
+  letter-spacing: var(--type-large-title-track);
   font-weight: 700;
+  color: var(--label);
   margin-bottom: 6px;
 }
 
 .styles-header-actions {
   display: flex;
-  gap: 12px;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
 
 .room-summary {
-  color: var(--text-muted);
-  font-size: 13px;
-  max-width: 320px;
+  font-size: var(--type-subhead-size);
+  line-height: var(--type-subhead-lh);
+  letter-spacing: var(--type-subhead-track);
+  color: var(--label-2);
+  max-width: 38ch;
 }
 
-/* Responsive 3-column grid for style cards */
 .style-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 20px;
+  gap: 16px;
 }
 
-/* Individual style card — glassmorphism with hover lift effect */
+/* Each card: rounded thumbnail with label/caption beneath, like a Photos
+   album tile. No heavy borders — uses surface fill + soft shadow. */
 .style-card {
   background: var(--surface);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: var(--radius-card);
   overflow: hidden;
   cursor: pointer;
-  transition: border-color var(--transition), transform var(--transition), box-shadow var(--transition);
+  border: 0.5px solid var(--separator);
+  transition: transform 200ms var(--ease-snappy),
+              box-shadow var(--duration) var(--ease-smooth),
+              border-color var(--duration) var(--ease-smooth);
+  display: flex;
+  flex-direction: column;
 }
 
 .style-card:hover {
-  border-color: var(--border-hover);
-  transform: translateY(-4px);
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-2);
+}
+
+.style-card:active {
+  transform: scale(0.985);
 }
 
 .style-card.selected {
-  border-color: var(--accent);
-  box-shadow: 0 0 30px rgba(232, 64, 28, 0.2);
+  border-color: var(--tint);
+  box-shadow: 0 0 0 2px var(--tint), var(--shadow-1);
 }
 
-/* Thumbnail area — shows CSS gradient or cached render image */
 .style-thumbnail {
-  height: 140px;
+  height: 160px;
   width: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background-image 0.3s;
+  position: relative;
+  border-radius: 0;
 }
 
 .style-thumbnail.generating {
-  opacity: 0.6;
+  opacity: 0.55;
 }
 
-/* Spinner used inside thumbnails during generation */
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
+/* Spinner used when a card is generating its preview */
 .thumb-spinner {
-  width: 24px;
-  height: 24px;
-  border: 2px solid rgba(255, 255, 255, 0.2);
-  border-top-color: rgba(255, 255, 255, 0.8);
+  width: 22px;
+  height: 22px;
+  border: 2px solid var(--label-4);
+  border-top-color: var(--label);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
 
-/* Disable click on cards that are currently generating */
 .style-card:has(.generating) {
   cursor: default;
   opacity: 0.7;
 }
 
-/* Card info section below the thumbnail */
 .style-info {
-  padding: 16px 20px;
+  padding: 14px 16px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
 .style-info h3 {
-  font-size: 17px;
+  font-size: var(--type-headline-size);
+  line-height: var(--type-headline-lh);
+  letter-spacing: var(--type-headline-track);
   font-weight: 600;
-  margin-bottom: 4px;
+  color: var(--label);
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 .style-info p {
-  color: var(--text-muted);
-  font-size: 14px;
+  font-size: var(--type-subhead-size);
+  line-height: var(--type-subhead-lh);
+  letter-spacing: var(--type-subhead-track);
+  color: var(--label-2);
+  font-weight: 400;
 }
 
-/* Match percentage badge (e.g., "72% match") */
+/* iOS-style filled capsule badge */
 .style-badge {
-  display: inline-block;
-  font-size: 11px;
+  display: inline-flex;
+  align-items: center;
+  font-size: var(--type-caption-size);
+  line-height: 1;
   font-weight: 600;
-  padding: 3px 10px;
-  border-radius: 20px;
-  margin-left: 8px;
-  vertical-align: middle;
-  background: rgba(255, 255, 255, 0.08);
-  color: var(--text-muted);
-  letter-spacing: 0.3px;
+  letter-spacing: 0;
+  padding: 4px 9px;
+  border-radius: var(--radius-pill);
+  background: var(--fill-3);
+  color: var(--label-2);
 }
 
-/* Special "Made for You" badge — gradient background */
 .style-badge.recommended {
-  background: linear-gradient(135deg, var(--accent), var(--accent-gold));
-  color: white;
+  background: var(--tint-bg);
+  color: var(--tint);
 }
 
-/* Custom style card — spans full width with accent-tinted background */
+/* Featured "Made for You" card — full-width hero, like an iOS widget. */
 .custom-style-card {
-  grid-column: 1 / -1;  /* Span all grid columns */
-  border-color: var(--accent);
-  background: linear-gradient(135deg, rgba(232, 64, 28, 0.06), rgba(245, 166, 35, 0.04));
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
+  border-color: var(--tint);
+  background: var(--surface);
+  position: relative;
+  overflow: hidden;
+}
+
+.custom-style-card::before {
+  /* Subtle tint glow behind the info pane */
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, var(--tint-bg-soft), transparent 60%);
+  pointer-events: none;
 }
 
 .custom-style-card .style-thumbnail {
-  height: 180px;  /* Taller thumbnail for the featured custom card */
+  height: 100%;
+  min-height: 240px;
+}
+
+.custom-style-card .style-info {
+  padding: 24px 28px;
+  justify-content: center;
+  gap: 8px;
+  position: relative;
+}
+
+.custom-style-card .style-info h3 {
+  font-size: var(--type-title-2-size);
+  line-height: var(--type-title-2-lh);
+  letter-spacing: var(--type-title-2-track);
+  font-weight: 700;
 }
 
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   RESULT VIEW
-   Displays the generated render with style info and action buttons.
+   RESULT — image-led detail view
    ═══════════════════════════════════════════════════════════════════════════ */
 
 .result-header {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 28px;
+  align-items: flex-end;
+  gap: 24px;
+  margin-bottom: 24px;
 }
 
 .result-header h2 {
-  font-size: 28px;
+  font-size: var(--type-large-title-size);
+  line-height: var(--type-large-title-lh);
+  letter-spacing: var(--type-large-title-track);
   font-weight: 700;
+  color: var(--label);
   margin-bottom: 6px;
 }
 
 .result-style-desc {
-  color: var(--text-muted);
-  font-size: 16px;
+  font-size: var(--type-subhead-size);
+  line-height: var(--type-subhead-lh);
+  letter-spacing: var(--type-subhead-track);
+  color: var(--label-2);
+  max-width: 56ch;
 }
 
 .result-actions {
   display: flex;
-  gap: 12px;
+  gap: 8px;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
 
-/* Render image container — full width with dramatic shadow */
 .render-container {
   width: 100%;
 }
 
 .render-container img {
   width: 100%;
-  border-radius: var(--radius);
+  border-radius: var(--radius-card);
   display: block;
-  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.4);
+  border: 0.5px solid var(--separator);
+  box-shadow: var(--shadow-2);
+  background: var(--surface);
 }
 
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   OVERLAY (for background generation notifications)
-   Fixed at the bottom of the screen with glassmorphism.
+   FLOATING OVERLAY (background generation indicator)
+   Vibrancy-material toast pinned to the bottom edge.
    ═══════════════════════════════════════════════════════════════════════════ */
 
 #generating-overlay {
@@ -797,84 +1139,134 @@ main > section {
 }
 
 .overlay-content {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 12px;
-  background: var(--surface-solid);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  padding: 12px 24px;
-  font-size: 14px;
-  color: var(--text-muted);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  background: var(--material-thin);
+  border: 0.5px solid var(--separator);
+  border-radius: var(--radius-pill);
+  padding: 10px 18px;
+  font-size: var(--type-subhead-size);
+  font-weight: 500;
+  color: var(--label);
+  backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  box-shadow: var(--shadow-2);
 }
 
 .overlay-content .spinner {
-  width: 20px;
-  height: 20px;
+  width: 16px;
+  height: 16px;
   margin-bottom: 0;
-  border-width: 2px;
+  border: 2px solid var(--label-4);
+  border-top-color: var(--label);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
 }
 
 
-/* ═══════════════════════════════════════════════════════════════════════════
-   UTILITY CLASSES
-   ═══════════════════════════════════════════════════════════════════════════ */
+/* ─── Utility ────────────────────────────────────────────────────────────── */
 
-/* Hide any element — used by main.ts to toggle section visibility */
 .hidden {
   display: none !important;
 }
 
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   FOOTER
+   FOOTER — small legal/credit line
    ═══════════════════════════════════════════════════════════════════════════ */
 
 footer {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 32px 24px 40px;
   text-align: center;
-  padding: 32px 24px;
-  color: var(--text-muted);
-  font-size: 13px;
-  opacity: 0.6;
-  position: relative;
-  z-index: 1;
+  font-size: var(--type-footnote-size);
+  line-height: var(--type-footnote-lh);
+  letter-spacing: var(--type-footnote-track);
+  color: var(--label-3);
 }
 
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   RESPONSIVE DESIGN
+   RESPONSIVE
    ═══════════════════════════════════════════════════════════════════════════ */
 
-/* Tablet: 768px and below */
-@media (max-width: 768px) {
-  header h1 {
-    font-size: 32px;
+@media (max-width: 900px) {
+  header,
+  main,
+  footer {
+    padding-left: 20px;
+    padding-right: 20px;
   }
 
-  /* Reduce style grid to 2 columns */
+  .toolbar {
+    margin-bottom: 32px;
+  }
+
+  .hero {
+    padding-top: 0;
+  }
+
   .style-grid {
     grid-template-columns: repeat(2, 1fr);
   }
 
-  /* Stack header elements vertically */
-  .result-header,
-  .styles-header {
+  .styles-header,
+  .result-header {
     flex-direction: column;
+    align-items: flex-start;
     gap: 16px;
+  }
+
+  .styles-header-actions,
+  .result-actions {
+    justify-content: flex-start;
+  }
+
+  .custom-style-card {
+    grid-template-columns: 1fr;
+  }
+
+  .custom-style-card .style-thumbnail {
+    min-height: 200px;
   }
 }
 
-/* Mobile: 480px and below */
-@media (max-width: 480px) {
-  /* Single column for style cards */
+@media (max-width: 540px) {
+  header h1 {
+    font-size: 36px;
+  }
+
   .style-grid {
     grid-template-columns: 1fr;
   }
 
-  /* Smaller quiz question text */
   .quiz-question {
-    font-size: 22px;
+    font-size: var(--type-title-2-size);
+    line-height: var(--type-title-2-lh);
+  }
+
+  .upload-text {
+    font-size: var(--type-title-3-size);
+    line-height: var(--type-title-3-lh);
+  }
+
+  #upload-zone {
+    height: 320px;
+  }
+
+  .styles-header-actions {
+    width: 100%;
+  }
+
+  .styles-header-actions .btn-secondary {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .loading-card,
+  .error-card {
+    padding: 36px 28px;
   }
 }

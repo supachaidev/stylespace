@@ -656,9 +656,8 @@ document.addEventListener('DOMContentLoaded', () => {
   // Set all static text to the default language (Thai)
   updateStaticText();
 
-  // ── Navigation: Logo and Home button both reset to upload ──
+  // ── Navigation: Home button resets to upload ──
   const goHome = (e: Event) => { e.preventDefault(); resetApp(); pushState({ view: 'upload' }); };
-  document.getElementById('logo-link')!.addEventListener('click', goHome);
   document.getElementById('home-btn')!.addEventListener('click', goHome);
 
   // ── Language toggle: switch between Thai and English ──
@@ -667,6 +666,22 @@ document.addEventListener('DOMContentLoaded', () => {
   });
   // Re-render the current view whenever language changes
   onLangChange(refreshCurrentView);
+
+  // ── Theme toggle: flip between light and dark, persist to localStorage ──
+  // Monotone SVG icons (currentColor, thin stroke) — show the destination theme.
+  const moonIcon = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>';
+  const sunIcon = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>';
+  const themeBtn = document.getElementById('theme-btn')!;
+  const setThemeIcon = () => {
+    themeBtn.innerHTML = document.documentElement.dataset.theme === 'light' ? moonIcon : sunIcon;
+  };
+  setThemeIcon();
+  themeBtn.addEventListener('click', () => {
+    const next = document.documentElement.dataset.theme === 'light' ? 'dark' : 'light';
+    document.documentElement.dataset.theme = next;
+    try { localStorage.setItem('stylespace-theme', next); } catch {}
+    setThemeIcon();
+  });
 
   // ── Browser history: handle back/forward button presses ──
   history.replaceState({ view: 'upload' } as AppState, '', null);

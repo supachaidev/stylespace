@@ -2,77 +2,95 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)" />
+  <meta name="theme-color" content="#F2F2F7" media="(prefers-color-scheme: light)" />
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-  <title>StyleSpace | All in</title>
-  <!-- Google Fonts: Inter — used throughout the app for clean, modern typography -->
+  <title>StyleSpace</title>
+
+  <!--
+    Typography — Apple HIG.
+    Latin: -apple-system / BlinkMacSystemFont resolves to SF Pro Display +
+    SF Pro Text on Apple devices, with Inter as fallback elsewhere.
+    Thai:  Noto Sans Thai — Google's pan-script humanist sans, matched in
+    x-height and weight to Latin sans-serifs. Loaded with unicode-range
+    so it only renders Thai characters; Latin still uses SF Pro / Inter.
+  -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/style.css">
+
+  <!-- Theme boot — set data-theme synchronously before paint to avoid FOUC.
+       Reads localStorage first, falls back to OS preference. -->
+  <script>
+    (function () {
+      try {
+        var saved = localStorage.getItem('stylespace-theme');
+        var theme = saved || (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+        document.documentElement.setAttribute('data-theme', theme);
+      } catch (e) {
+        document.documentElement.setAttribute('data-theme', 'dark');
+      }
+    })();
+  </script>
 </head>
 <body>
-  <!--
-    Ambient Background Glow
-    A subtle radial gradient fixed behind all content.
-    Creates a warm, soft glow effect at the top of the page
-    using the accent color (SCG red-orange) at very low opacity.
-  -->
-  <div class="bg-glow"></div>
+  <div class="floating-actions">
+    <button id="theme-btn" class="theme-toggle" aria-label="Toggle theme"></button>
+    <button id="lang-btn" class="lang-toggle" aria-label="Toggle language">EN</button>
+  </div>
 
   <!--
     Header
-    Contains: Home button (hidden on upload page), language toggle,
-    logo (clickable to go home), app title, and tagline.
-    All text content is updated dynamically by main.ts when the language changes.
+    Apple-style large-title page header with the Large Title and a
+    secondary subtitle in muted label color.
   -->
   <header>
-    <div class="header-actions">
+    <div class="hero">
+      <h1>StyleSpace</h1>
+      <p class="tagline">Upload your floor plan. Explore interior styles instantly.</p>
       <button id="home-btn" class="btn-secondary btn-home hidden">Home</button>
-      <button id="lang-btn" class="lang-toggle">EN</button>
     </div>
-    <a id="logo-link" class="logo" href="#">
-      <span class="logo-scg">SCG</span>
-      <span class="logo-sep">&times;</span>
-      <span class="logo-allin">All in</span>
-    </a>
-    <h1>StyleSpace</h1>
-    <p class="tagline">Upload your floor plan. Explore interior styles instantly.</p>
   </header>
 
   <main>
     <!--
       ════════════════════════════════════════════════════════════
       Section 1: UPLOAD
-      The landing page. Shows a drop zone where users can drag
-      or click to upload their floor plan image.
+      Files-app-style empty state: SF-Symbol-style icon, Title 2,
+      caption, and a primary action below.
       ════════════════════════════════════════════════════════════
     -->
     <section id="upload-section">
       <div id="upload-zone">
         <input type="file" id="file-input" accept="image/*" hidden />
         <div class="upload-icon-wrapper">
-          <!-- Animated pulsing ring around the upload icon -->
-          <div class="upload-icon-ring"></div>
-          <div class="upload-icon">&#x2B06;</div>
+          <div class="upload-icon-ring" aria-hidden="true"></div>
+          <div class="upload-icon" aria-hidden="true">
+            <svg viewBox="0 0 36 36" width="36" height="36" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M18 23 V8"/>
+              <path d="M11.5 14.5 L18 8 L24.5 14.5"/>
+              <path d="M7 22 V26 A2 2 0 0 0 9 28 H27 A2 2 0 0 0 29 26 V22"/>
+            </svg>
+          </div>
         </div>
         <p class="upload-text">Drop your floor plan here</p>
-        <p class="upload-subtext">or click to browse &middot; JPG, PNG</p>
+        <p class="upload-subtext">or click to browse · JPG, PNG</p>
       </div>
     </section>
 
     <!--
       ════════════════════════════════════════════════════════════
       Section 2: LOADING
-      Shown during API calls (analyze, generate, restyle).
-      The title and subtitle text are updated dynamically by
-      main.ts depending on which operation is in progress.
-      Uses an animated bar loader instead of a spinner.
+      A modern AI-app loader: a colorful gradient orb (à la Apple
+      Intelligence / Anthropic) with a soft rotating halo, paired
+      with a shimmering headline that mimics streaming-text indicators.
       ════════════════════════════════════════════════════════════
     -->
     <section id="loading-section" class="hidden">
       <div class="loading-card">
-        <!-- Animated AI-style loader: 4 bars that pulse in sequence -->
-        <div class="ai-loader">
+        <div class="ai-loader" aria-hidden="true">
           <div class="ai-loader-bar"></div>
           <div class="ai-loader-bar"></div>
           <div class="ai-loader-bar"></div>
@@ -86,13 +104,17 @@
     <!--
       ════════════════════════════════════════════════════════════
       Section 3: ERROR
-      Shown when any API call fails. Displays the error message
-      and a "Try Again" button that resets the app to upload.
       ════════════════════════════════════════════════════════════
     -->
     <section id="error-section" class="hidden">
       <div class="error-card">
-        <div class="error-icon">!</div>
+        <div class="error-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/>
+            <path d="M12 7v6"/>
+            <circle cx="12" cy="16.5" r="0.6" fill="currentColor"/>
+          </svg>
+        </div>
         <p class="error-text" id="error-message"></p>
         <button id="retry-btn" class="btn-primary">Try Again</button>
       </div>
@@ -101,16 +123,9 @@
     <!--
       ════════════════════════════════════════════════════════════
       Section 4: QUIZ
-      A 6-question lifestyle quiz that determines the user's
-      preferred interior design style. Questions and options are
-      rendered dynamically by main.ts from the quiz.ts data.
-
-      Elements:
-        - Progress bar (animated gradient, fills as questions advance)
-        - Step indicator ("Question 3 of 6")
-        - Question text
-        - Option buttons (emoji icon + label)
-        - Skip button (goes directly to style picker)
+      Settings-app-style grouped list. Large title at top,
+      thin progress bar, then a single rounded container holding
+      the option rows separated by hairlines.
       ════════════════════════════════════════════════════════════
     -->
     <section id="quiz-section" class="hidden">
@@ -125,7 +140,7 @@
         </div>
         <div class="quiz-skip-actions">
           <button id="random-style-btn" class="btn-text">Random style</button>
-          <span class="quiz-skip-sep">|</span>
+          <span class="quiz-skip-sep" aria-hidden="true">·</span>
           <button id="skip-quiz-btn" class="btn-text">Browse all styles</button>
         </div>
       </div>
@@ -134,14 +149,9 @@
     <!--
       ════════════════════════════════════════════════════════════
       Section 5: STYLE PICKER
-      Displays all available styles as cards in a responsive grid.
-      If the user completed the quiz, styles are sorted by match
-      percentage and a "Made for You" custom style appears first.
-
-      Elements:
-        - Header with title, room summary, retake/upload buttons
-        - Style grid (3 columns on desktop, 2 on tablet, 1 on mobile)
-        - Each card has: thumbnail, style name, description, match badge
+      Photos-app-style grid. Header has a Large Title with toolbar
+      actions to the right. Cards have rounded thumbnails and
+      label/caption text below in iOS Headline + Subhead sizes.
       ════════════════════════════════════════════════════════════
     -->
     <section id="styles-section" class="hidden">
@@ -165,13 +175,6 @@
     <!--
       ════════════════════════════════════════════════════════════
       Section 6: RESULT
-      Displays the AI-generated render with style info and actions.
-
-      Elements:
-        - Header with style name, description
-        - Regenerate button (generates a new variation)
-        - Try Another Style button (goes back to style picker)
-        - The render image (full-width, displayed from data URL)
       ════════════════════════════════════════════════════════════
     -->
     <section id="result-section" class="hidden">
@@ -193,10 +196,9 @@
   </main>
 
   <footer>
-    <p>Bangkok University &times; SCG | Senior Project 2026</p>
+    <p>Bangkok University × SCG · Senior Project · 2026</p>
   </footer>
 
-  <!-- Vite processes this as an ES module — TypeScript is compiled on the fly in dev -->
   <script type="module" src="/src/main.ts"></script>
 </body>
 </html>
