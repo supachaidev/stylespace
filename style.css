@@ -445,11 +445,10 @@ main > section {
   box-shadow:
     inset 0 0 0 0.5px var(--label-3),
     var(--shadow-2);
-  transform: translateY(-2px);
 }
 
 #upload-zone:active {
-  transform: translateY(0) scale(0.997);
+  transform: scale(0.997);
   box-shadow:
     inset 0 0 0 0.5px var(--separator),
     var(--shadow-1);
