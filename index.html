@@ -175,6 +175,10 @@
     <!--
       ════════════════════════════════════════════════════════════
       Section 6: RESULT
+      Two-column layout: AI render on the left, live SCG bill of
+      materials on the right. The BOM is grouped by room and shows
+      product swatches, quantities, line totals, and a grand total.
+      Mobile collapses to a single column with the BOM below.
       ════════════════════════════════════════════════════════════
     -->
     <section id="result-section" class="hidden">
@@ -189,8 +193,24 @@
           <button id="try-another-style-btn" class="btn-primary">Try Another Style</button>
         </div>
       </div>
-      <div class="render-container">
-        <img id="render-image" src="" alt="AI Render" />
+      <div class="result-body">
+        <div class="render-container">
+          <img id="render-image" src="" alt="AI Render" />
+        </div>
+        <aside class="bom-panel" id="bom-panel">
+          <div class="bom-header">
+            <p class="bom-eyebrow" id="bom-eyebrow">Materials &amp; Cost</p>
+            <h3 class="bom-rationale" id="bom-rationale"></h3>
+          </div>
+          <div class="bom-rooms" id="bom-rooms">
+            <!-- Per-room product cards are injected here by main.ts -->
+          </div>
+          <div class="bom-total" id="bom-total-row">
+            <span class="bom-total-label" id="bom-total-label">Total estimated cost</span>
+            <span class="bom-total-value" id="bom-total"></span>
+          </div>
+          <p class="bom-disclaimer" id="bom-disclaimer"></p>
+        </aside>
       </div>
     </section>
   </main>

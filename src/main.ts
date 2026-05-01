@@ -38,7 +38,7 @@ import { getStylePresets, createCustomStyle, createRandomStyle } from './styles'
 import { getQuizQuestions, calculateResult, getMaxScore, type QuizResult } from './quiz';
 import { t, getLang, setLang, onLangChange } from './i18n';
 import { resizeImageFile } from './lib/resize';
-import type { StylePreset, AnalyzeResponse, RenderResponse } from './types';
+import type { StylePreset, AnalyzeResponse, RenderResponse, RecommendResponse, BomLine, RoomInfo } from './types';
 
 // Max image dimensions sent to each API. Matches the previous Python
 // backend's Pillow.resize() values. Smaller = cheaper Gemini/Claude calls.
@@ -67,8 +67,18 @@ let baseRender: string | null = null;
  */
 const renderCache = new Map<string, string>();
 
+/**
+ * In-memory cache: styleId → SCG bill of materials.
+ * /api/recommend is called once per (style, floor plan) pair; later visits
+ * reuse the same BOM. Cleared on new upload.
+ */
+const bomCache = new Map<string, RecommendResponse>();
+
 /** The style currently being displayed in the result view */
 let currentStyle: StylePreset | null = null;
+
+/** The BOM matching the currently displayed render (null until recommend resolves) */
+let currentBom: RecommendResponse | null = null;
 
 // Quiz state
 let quizAnswers: number[] = [];  // Array of selected option indices (one per question)
@@ -119,7 +129,10 @@ function restoreState(state: AppState | null): void {
         const cached = renderCache.get(state.styleId);
         const style = (state.styleId === 'custom' ? customStyle : null)
           ?? getStylePresets().find(s => s.id === state.styleId);
-        if (cached && style) { showResultRaw(cached, style); return; }
+        if (cached && style) {
+          showResultRaw(cached, style, bomCache.get(state.styleId) ?? null);
+          return;
+        }
       }
       // Can't restore result → fall back to style picker or upload
       if (currentAnalysis && baseRender) showStylePicker(false);
@@ -148,7 +161,9 @@ async function handleUpload(file: File): Promise<void> {
   // Store the file and reset all state for the new session
   uploadedFile = file;
   renderCache.clear();
+  bomCache.clear();
   baseRender = null;
+  currentBom = null;
   quizAnswers = [];
   quizStep = 0;
 
@@ -259,25 +274,63 @@ async function finishQuiz(): Promise<void> {
 }
 
 
+// ─── Bill of Materials ──────────────────────────────────────────────────────
+//
+// Before each new render, we ask Claude to pick concrete SCG products for
+// the chosen style. The picks drive both the BOM panel (price + per-pick
+// rationale) and the Gemini render (the material_summary line is appended
+// to the prompt so the render visibly uses the chosen finishes).
+
+async function getBomForStyle(style: StylePreset): Promise<RecommendResponse | null> {
+  if (!currentAnalysis) return null;
+
+  // Per-session cache — same style on the same floor plan reuses the BOM.
+  const hit = bomCache.get(style.id);
+  if (hit) return hit;
+
+  const res = await fetch('/api/recommend', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      rooms: currentAnalysis.rooms,
+      style_label: style.label,
+      style_prompt: style.prompt,
+    }),
+  });
+  const data = await res.json() as RecommendResponse;
+  if (data.error) throw new Error(data.error);
+
+  bomCache.set(style.id, data);
+  return data;
+}
+
+
 // ─── First Render Generation ────────────────────────────────────────────────
 //
-// This calls POST /api/generate which sends the floor plan image +
-// room data + style prompt to Gemini. The result becomes the "base render"
-// that all subsequent restyle calls build upon.
+// This calls POST /api/recommend then POST /api/generate. /api/recommend
+// returns the SCG bill of materials, and its `material_summary` is fed
+// back into /api/generate so the render uses those exact finishes.
+// The result becomes the "base render" that all subsequent restyle calls
+// build upon.
 
 async function generateFirstRender(style: StylePreset): Promise<void> {
   if (!uploadedFile || !currentAnalysis) return;
 
   showSectionRaw('loading');
-  updateLoadingText(`${style.label}`, t('loading.generating'));
+  updateLoadingText(t('loading.recommending'), t('loading.recommending.sub'));
 
   try {
+    const bom = await getBomForStyle(style);
+
+    updateLoadingText(`${style.label}`, t('loading.generating'));
+
     // Resize down to 512px for the Gemini call (same as the old Pillow path).
     const resized = await resizeImageFile(uploadedFile, GENERATE_MAX_SIZE);
     const form = new FormData();
     form.append('file', resized);
     form.append('style_prompt', style.prompt);
     form.append('room_data', JSON.stringify(currentAnalysis));
+    if (bom?.material_summary) form.append('material_summary', bom.material_summary);
 
     const res = await fetch('/api/generate', { method: 'POST', body: form });
     const data = await res.json() as RenderResponse;
@@ -289,9 +342,9 @@ async function generateFirstRender(style: StylePreset): Promise<void> {
     // Cache this style's render for instant switching later
     renderCache.set(style.id, data.render_url);
 
-    showResult(data.render_url, style);
-  } catch {
-    showError(t('error.render'));
+    showResult(data.render_url, style, bom);
+  } catch (e) {
+    showError(e instanceof Error && e.message ? e.message : t('error.render'));
   }
 }
 
@@ -392,7 +445,11 @@ async function selectStyle(style: StylePreset): Promise<void> {
 
   // Check if we already have this style's render cached
   const cached = renderCache.get(style.id);
-  if (cached) { showResult(cached, style); return; }
+  if (cached) {
+    // Use the cached BOM if we have one; otherwise show render with empty BOM.
+    showResult(cached, style, bomCache.get(style.id) ?? null);
+    return;
+  }
 
   // If no base render exists, we need to generate from scratch
   if (!baseRender) {
@@ -402,12 +459,16 @@ async function selectStyle(style: StylePreset): Promise<void> {
 
   // Restyle the existing base render into the new style
   showSectionRaw('loading');
-  updateLoadingText(`${style.label}`, t('loading.restyling'));
+  updateLoadingText(t('loading.recommending'), t('loading.recommending.sub'));
 
   try {
+    const bom = await getBomForStyle(style);
+    updateLoadingText(`${style.label}`, t('loading.restyling'));
+
     const form = new FormData();
     form.append('base_image', baseRender);
     form.append('style_prompt', style.prompt);
+    if (bom?.material_summary) form.append('material_summary', bom.material_summary);
 
     const res = await fetch('/api/restyle', { method: 'POST', body: form });
     const data = await res.json() as RenderResponse;
@@ -418,9 +479,9 @@ async function selectStyle(style: StylePreset): Promise<void> {
     renderCache.set(style.id, data.render_url);
     updateStyleCard(style.id, data.render_url);
 
-    showResult(data.render_url, style);
-  } catch {
-    showError(t('error.restyle'));
+    showResult(data.render_url, style, bom);
+  } catch (e) {
+    showError(e instanceof Error && e.message ? e.message : t('error.restyle'));
   }
 }
 
@@ -440,14 +501,15 @@ function updateStyleCard(styleId: string, renderUrl: string): void {
 // ─── Result Display ─────────────────────────────────────────────────────────
 
 /** Show the render result and push a history entry */
-function showResult(renderUrl: string, style: StylePreset): void {
-  showResultRaw(renderUrl, style);
+function showResult(renderUrl: string, style: StylePreset, bom: RecommendResponse | null): void {
+  showResultRaw(renderUrl, style, bom);
   pushState({ view: 'result', styleId: style.id });
 }
 
 /** Show the render result without pushing history (used by restoreState) */
-function showResultRaw(renderUrl: string, style: StylePreset): void {
+function showResultRaw(renderUrl: string, style: StylePreset, bom: RecommendResponse | null): void {
   currentStyle = style;
+  currentBom = bom;
   showSectionRaw('result');
 
   // Ensure action buttons are visible
@@ -458,6 +520,139 @@ function showResultRaw(renderUrl: string, style: StylePreset): void {
   (document.getElementById('render-image') as HTMLImageElement).src = renderUrl;
   document.getElementById('result-style-name')!.textContent = style.label;
   document.getElementById('result-style-desc')!.textContent = style.description;
+
+  renderBomPanel(bom);
+}
+
+
+// ─── BOM Panel Rendering ────────────────────────────────────────────────────
+//
+// Groups BOM lines by room and renders product cards with swatch, name,
+// quantity, unit price, and line total. The grand total sits at the bottom.
+// Re-runs on language change so prices/labels switch live.
+
+const THB = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 });
+
+function formatLineMeta(line: BomLine): string {
+  const qtyStr = line.unit === 'piece'
+    ? String(line.quantity)
+    : line.quantity.toFixed(line.unit === '9L_can' ? 0 : 1);
+  const priceStr = THB.format(line.unit_price_thb);
+  const key = line.unit === 'piece' ? 'bom.qty.piece' : line.unit === '9L_can' ? 'bom.qty.can' : 'bom.qty.m2';
+  return t(key).replace('{qty}', qtyStr).replace('{price}', priceStr);
+}
+
+function renderBomPanel(bom: RecommendResponse | null): void {
+  const eyebrow = document.getElementById('bom-eyebrow');
+  const rationale = document.getElementById('bom-rationale');
+  const roomsEl = document.getElementById('bom-rooms');
+  const totalLabel = document.getElementById('bom-total-label');
+  const totalValue = document.getElementById('bom-total');
+  const disclaimer = document.getElementById('bom-disclaimer');
+  if (!eyebrow || !rationale || !roomsEl || !totalLabel || !totalValue || !disclaimer) return;
+
+  const lang = getLang();
+  eyebrow.textContent = t('bom.eyebrow');
+  totalLabel.textContent = t('bom.totalLabel');
+  disclaimer.textContent = t('bom.disclaimer');
+
+  if (!bom || bom.bom.length === 0) {
+    rationale.textContent = '';
+    roomsEl.innerHTML = `<div class="bom-loading">${t('bom.empty')}</div>`;
+    totalValue.textContent = '';
+    return;
+  }
+
+  rationale.textContent = lang === 'th' ? bom.rationale_th : bom.rationale_en;
+
+  // Group BOM lines by room, preserving the original room order.
+  const rooms: RoomInfo[] = currentAnalysis?.rooms ?? [];
+  const linesByRoom = new Map<string, BomLine[]>();
+  for (const line of bom.bom) {
+    const arr = linesByRoom.get(line.room_id) ?? [];
+    arr.push(line);
+    linesByRoom.set(line.room_id, arr);
+  }
+
+  roomsEl.innerHTML = '';
+  for (const room of rooms) {
+    const lines = linesByRoom.get(room.id);
+    if (!lines || lines.length === 0) continue;
+
+    const section = document.createElement('div');
+    section.className = 'bom-room';
+    section.setAttribute('data-room-id', room.id);
+
+    const header = document.createElement('div');
+    header.className = 'bom-room-header';
+
+    const name = document.createElement('span');
+    name.className = 'bom-room-name';
+    name.textContent = room.label;
+
+    const area = document.createElement('span');
+    area.className = 'bom-room-area';
+    area.textContent = t('bom.area')
+      .replace('{area}', String(room.area_sqm))
+      .replace('{zone}', t(`bom.zone.${room.zone}`));
+
+    header.appendChild(name);
+    header.appendChild(area);
+    section.appendChild(header);
+
+    for (const line of lines) {
+      const row = document.createElement('div');
+      row.className = 'bom-line';
+
+      const swatch = document.createElement('span');
+      swatch.className = 'bom-swatch';
+      swatch.style.background = line.swatch;
+
+      const info = document.createElement('div');
+      info.className = 'bom-line-info';
+
+      const lineName = document.createElement('span');
+      lineName.className = 'bom-line-name';
+      lineName.textContent = lang === 'th' ? line.name_th : line.name_en;
+      info.appendChild(lineName);
+
+      const reasonText = lang === 'th' ? line.reason_th : line.reason_en;
+      if (reasonText) {
+        const reason = document.createElement('span');
+        reason.className = 'bom-line-reason';
+        reason.textContent = reasonText;
+        info.appendChild(reason);
+      }
+
+      const meta = document.createElement('span');
+      meta.className = 'bom-line-meta';
+      meta.textContent = formatLineMeta(line);
+      info.appendChild(meta);
+
+      const price = document.createElement('div');
+      price.className = 'bom-line-price';
+
+      const total = document.createElement('span');
+      total.className = 'bom-line-total';
+      total.textContent = `฿${THB.format(line.line_total_thb)}`;
+
+      const unit = document.createElement('span');
+      unit.className = 'bom-line-unit';
+      unit.textContent = line.sku;
+
+      price.appendChild(total);
+      price.appendChild(unit);
+
+      row.appendChild(swatch);
+      row.appendChild(info);
+      row.appendChild(price);
+      section.appendChild(row);
+    }
+
+    roomsEl.appendChild(section);
+  }
+
+  totalValue.textContent = `฿${THB.format(bom.grand_total_thb)}`;
 }
 
 
@@ -474,9 +669,14 @@ async function regenerateRender(style: StylePreset): Promise<void> {
   updateLoadingText(`${style.label}`, t('loading.regenerating'));
 
   try {
+    // The BOM is deterministic per (style, plan), so we reuse the cached
+    // recommend result rather than re-running it on every regenerate.
+    const bom = bomCache.get(style.id) ?? currentBom;
+
     const form = new FormData();
     form.append('base_image', baseRender);
     form.append('style_prompt', style.prompt);
+    if (bom?.material_summary) form.append('material_summary', bom.material_summary);
 
     const res = await fetch('/api/restyle', { method: 'POST', body: form });
     const data = await res.json() as RenderResponse;
@@ -487,7 +687,7 @@ async function regenerateRender(style: StylePreset): Promise<void> {
     renderCache.set(style.id, data.render_url);
     updateStyleCard(style.id, data.render_url);
 
-    showResultRaw(data.render_url, style);
+    showResultRaw(data.render_url, style, bom ?? null);
   } catch {
     showError(t('error.restyle'));
   }
@@ -588,7 +788,9 @@ function resetApp(): void {
   baseRender = null;
   currentAnalysis = null;
   currentStyle = null;
+  currentBom = null;
   renderCache.clear();
+  bomCache.clear();
   quizAnswers = [];
   quizStep = 0;
   quizResult = null;
@@ -641,6 +843,7 @@ function refreshCurrentView(): void {
     currentStyle = freshStyle;
     document.getElementById('result-style-name')!.textContent = freshStyle.label;
     document.getElementById('result-style-desc')!.textContent = freshStyle.description;
+    renderBomPanel(currentBom);
   }
 }
 

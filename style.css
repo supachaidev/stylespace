@@ -1110,6 +1110,13 @@ main > section {
   justify-content: flex-end;
 }
 
+.result-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
+}
+
 .render-container {
   width: 100%;
 }
@@ -1121,6 +1128,200 @@ main > section {
   border: 0.5px solid var(--separator);
   box-shadow: var(--shadow-2);
   background: var(--surface);
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   BOM PANEL — live SCG bill of materials
+   Right-rail card with rationale, per-room product list, and grand total.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.bom-panel {
+  background: var(--surface);
+  border-radius: var(--radius-card);
+  border: 0.5px solid var(--separator);
+  box-shadow: var(--shadow-1);
+  padding: 22px 22px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  position: sticky;
+  top: 16px;
+  max-height: calc(100vh - 32px);
+  overflow-y: auto;
+}
+
+.bom-eyebrow {
+  font-size: var(--type-footnote-size);
+  line-height: var(--type-footnote-lh);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--tint);
+  margin-bottom: 6px;
+}
+
+.bom-rationale {
+  font-size: var(--type-callout-size);
+  line-height: var(--type-callout-lh);
+  letter-spacing: var(--type-callout-track);
+  font-weight: 500;
+  color: var(--label);
+  text-wrap: pretty;
+}
+
+.bom-rooms {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.bom-room {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px 0;
+  border-top: 0.5px solid var(--separator);
+}
+
+.bom-room:first-child {
+  border-top: none;
+  padding-top: 0;
+}
+
+.bom-room-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.bom-room-name {
+  font-size: var(--type-headline-size);
+  line-height: var(--type-headline-lh);
+  letter-spacing: var(--type-headline-track);
+  font-weight: 600;
+  color: var(--label);
+}
+
+.bom-room-area {
+  font-size: var(--type-caption-size);
+  line-height: var(--type-caption-lh);
+  color: var(--label-3);
+  font-weight: 500;
+}
+
+.bom-line {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 12px;
+  padding: 10px 0;
+  border-top: 0.5px solid var(--fill-4);
+}
+
+.bom-line:first-child {
+  border-top: none;
+}
+
+.bom-swatch {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  border: 0.5px solid var(--separator);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.bom-line-info {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.bom-line-name {
+  font-size: var(--type-subhead-size);
+  line-height: var(--type-subhead-lh);
+  letter-spacing: var(--type-subhead-track);
+  color: var(--label);
+  font-weight: 500;
+}
+
+.bom-line-reason {
+  font-size: var(--type-caption-size);
+  line-height: var(--type-caption-lh);
+  color: var(--label-2);
+  font-weight: 400;
+}
+
+.bom-line-meta {
+  font-size: var(--type-caption-size);
+  line-height: var(--type-caption-lh);
+  color: var(--label-3);
+  font-weight: 500;
+}
+
+.bom-line-price {
+  text-align: right;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.bom-line-total {
+  font-size: var(--type-subhead-size);
+  line-height: var(--type-subhead-lh);
+  letter-spacing: var(--type-subhead-track);
+  color: var(--label);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.bom-line-unit {
+  font-size: var(--type-caption-size);
+  line-height: var(--type-caption-lh);
+  color: var(--label-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.bom-total {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding-top: 16px;
+  border-top: 0.5px solid var(--separator);
+}
+
+.bom-total-label {
+  font-size: var(--type-subhead-size);
+  line-height: var(--type-subhead-lh);
+  letter-spacing: var(--type-subhead-track);
+  color: var(--label-2);
+  font-weight: 500;
+}
+
+.bom-total-value {
+  font-size: var(--type-title-2-size);
+  line-height: var(--type-title-2-lh);
+  letter-spacing: var(--type-title-2-track);
+  color: var(--label);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.bom-disclaimer {
+  font-size: var(--type-caption-size);
+  line-height: var(--type-caption-lh);
+  color: var(--label-3);
+}
+
+.bom-loading {
+  text-align: center;
+  padding: 32px 16px;
+  color: var(--label-2);
+  font-size: var(--type-subhead-size);
 }
 
 
@@ -1229,6 +1430,16 @@ footer {
 
   .custom-style-card .style-thumbnail {
     min-height: 200px;
+  }
+
+  /* Stack render above BOM on tablet/mobile */
+  .result-body {
+    grid-template-columns: 1fr;
+  }
+
+  .bom-panel {
+    position: static;
+    max-height: none;
   }
 }
 

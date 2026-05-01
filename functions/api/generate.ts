@@ -27,6 +27,10 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
     const file = getFile(form, 'file');
     const stylePrompt = form.get('style_prompt');
     const roomDataRaw = form.get('room_data');
+    const materialSummaryRaw = form.get('material_summary');
+    const materialSummary = typeof materialSummaryRaw === 'string' && materialSummaryRaw.trim()
+      ? materialSummaryRaw
+      : undefined;
 
     if (!file || typeof stylePrompt !== 'string' || typeof roomDataRaw !== 'string') {
       return Response.json({ error: 'Missing file, style_prompt, or room_data' }, { status: 400 });
@@ -36,13 +40,15 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
     const imageBytes = new Uint8Array(await file.arrayBuffer());
     const imageHash = await sha256Hex(imageBytes, 16);
 
-    // Cache check — avoids redundant Gemini calls entirely
-    const cached = await getCached(env.STYLESPACE_RENDER_CACHE, imageHash, stylePrompt);
+    // Cache check — avoids redundant Gemini calls entirely. The materials
+    // hash means swapping a SKU regenerates without invalidating other
+    // (style, BOM) combinations on the same image.
+    const cached = await getCached(env.STYLESPACE_RENDER_CACHE, imageHash, stylePrompt, materialSummary);
     if (cached) {
       return Response.json({ render_url: `data:image/png;base64,${cached}` });
     }
 
-    const prompt = buildBasePrompt(rooms, stylePrompt);
+    const prompt = buildBasePrompt(rooms, stylePrompt, materialSummary);
     const imageB64 = bytesToBase64(imageBytes);
 
     const ai = new GoogleGenAI({ apiKey: env.GOOGLE_API_KEY });
@@ -64,7 +70,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
     for (const part of parts) {
       const inline = part.inlineData;
       if (inline?.mimeType?.startsWith('image/') && inline.data) {
-        await setCached(env.STYLESPACE_RENDER_CACHE, imageHash, stylePrompt, inline.data);
+        await setCached(env.STYLESPACE_RENDER_CACHE, imageHash, stylePrompt, inline.data, materialSummary);
         return Response.json({ render_url: `data:image/png;base64,${inline.data}` });
       }
     }

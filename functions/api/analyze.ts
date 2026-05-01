@@ -25,6 +25,9 @@ interface Room {
   width: number;
   depth: number;
   color: string;
+  area_sqm: number;
+  zone: 'wet' | 'dry';
+  fixtures: string[];
 }
 
 interface RoomData {
@@ -36,9 +39,15 @@ const FALLBACK: RoomData = {
   rooms: [{
     id: 'room_1', label: 'Room', type: 'other',
     x: 0.1, y: 0.1, width: 0.8, depth: 0.8, color: '#E0E0E0',
+    area_sqm: 12, zone: 'dry', fixtures: [],
   }],
   total_rooms: 1,
 };
+
+const WET_TYPES = new Set(['bathroom', 'kitchen']);
+const VALID_FIXTURES = new Set([
+  'toilet', 'basin', 'shower', 'bathtub', 'kitchen_sink', 'stove', 'fridge',
+]);
 
 function clamp(v: number, lo: number, hi: number): number {
   return Math.max(lo, Math.min(hi, v));
@@ -95,6 +104,17 @@ function parseClaudeJSON(raw: string): RoomData {
     room.depth = clamp(Number(room.depth), 0, 1);
     if (room.x + room.width > 1) room.width = 1 - room.x;
     if (room.y + room.depth > 1) room.depth = 1 - room.y;
+
+    // Sanitise the BOM-relevant fields: pin area to a sensible range, fall
+    // back to the room type for zone, and drop unknown fixture labels.
+    const area = Number(room.area_sqm);
+    room.area_sqm = Number.isFinite(area) ? clamp(area, 1.5, 80) : 10;
+    room.zone = room.zone === 'wet' || room.zone === 'dry'
+      ? room.zone
+      : (WET_TYPES.has(room.type) ? 'wet' : 'dry');
+    room.fixtures = Array.isArray(room.fixtures)
+      ? room.fixtures.filter((f) => typeof f === 'string' && VALID_FIXTURES.has(f))
+      : [];
   }
 
   if (!data.rooms || data.rooms.length === 0) return FALLBACK;

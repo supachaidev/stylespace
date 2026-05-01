@@ -42,13 +42,49 @@ export interface StylePreset {
  *   - width extends rightward, depth extends downward
  */
 export interface RoomInfo {
-  id: string;     // Unique room identifier (e.g., "room_1")
-  label: string;  // Human-readable name (e.g., "Living Room")
-  type: string;   // Room type: living, bedroom, kitchen, bathroom, etc.
-  x: number;      // Left edge position (0.0–1.0)
-  y: number;      // Top edge position (0.0–1.0)
-  width: number;  // Horizontal span (0.0–1.0)
-  depth: number;  // Vertical span (0.0–1.0)
+  id: string;          // Unique room identifier (e.g., "room_1")
+  label: string;       // Human-readable name (e.g., "Living Room")
+  type: string;        // Room type: living, bedroom, kitchen, bathroom, etc.
+  x: number;           // Left edge position (0.0–1.0)
+  y: number;           // Top edge position (0.0–1.0)
+  width: number;       // Horizontal span (0.0–1.0)
+  depth: number;       // Vertical span (0.0–1.0)
+  area_sqm: number;    // Estimated floor area in square metres (used for BOM tile/paint quantities)
+  zone: 'wet' | 'dry'; // Bathrooms/kitchens are "wet"; sanitary ware is only recommended for wet zones
+  fixtures: string[];  // Visible fixtures: "toilet" | "basin" | "shower" | "bathtub" | "kitchen_sink" | "stove" | "fridge"
+}
+
+
+/**
+ * A bill-of-materials line item recommended for a specific room.
+ * Returned by /api/recommend; rendered in the BOM panel.
+ */
+export interface BomLine {
+  sku: string;
+  name_en: string;
+  name_th: string;
+  category: string;
+  swatch: string;
+  unit: string;
+  unit_price_thb: number;
+  quantity: number;          // m² for tiles/paint, count for fixtures
+  line_total_thb: number;
+  reason_en: string;         // Short Claude-generated rationale (≤ 120 chars)
+  reason_th: string;
+  room_id: string;
+}
+
+
+/**
+ * Response from POST /api/recommend.
+ */
+export interface RecommendResponse {
+  bom: BomLine[];
+  grand_total_thb: number;
+  rationale_en: string;      // Overall design narrative (1-3 sentences)
+  rationale_th: string;
+  material_summary: string;  // Compact phrase describing materials, fed into the Gemini render prompt
+  error?: string;
 }
 
 

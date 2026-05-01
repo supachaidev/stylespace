@@ -22,6 +22,10 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
     const form = await request.formData();
     const baseImage = form.get('base_image');
     const stylePrompt = form.get('style_prompt');
+    const materialSummaryRaw = form.get('material_summary');
+    const materialSummary = typeof materialSummaryRaw === 'string' && materialSummaryRaw.trim()
+      ? materialSummaryRaw
+      : undefined;
 
     if (typeof baseImage !== 'string' || typeof stylePrompt !== 'string') {
       return Response.json({ error: 'Missing base_image or style_prompt' }, { status: 400 });
@@ -33,12 +37,12 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
     // backend's cheap hashing (we don't need to digest the full render).
     const fingerprint = `restyle_${await sha256Hex(b64.slice(0, 2048), 16)}`;
 
-    const cached = await getCached(env.STYLESPACE_RENDER_CACHE, fingerprint, stylePrompt);
+    const cached = await getCached(env.STYLESPACE_RENDER_CACHE, fingerprint, stylePrompt, materialSummary);
     if (cached) {
       return Response.json({ render_url: `data:image/png;base64,${cached}` });
     }
 
-    const prompt = buildRestylePrompt(stylePrompt);
+    const prompt = buildRestylePrompt(stylePrompt, materialSummary);
     const ai = new GoogleGenAI({ apiKey: env.GOOGLE_API_KEY });
 
     const response = await ai.models.generateContent({
@@ -59,7 +63,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
     for (const part of parts) {
       const inline = part.inlineData;
       if (inline?.mimeType?.startsWith('image/') && inline.data) {
-        await setCached(env.STYLESPACE_RENDER_CACHE, fingerprint, stylePrompt, inline.data);
+        await setCached(env.STYLESPACE_RENDER_CACHE, fingerprint, stylePrompt, inline.data, materialSummary);
         return Response.json({ render_url: `data:image/png;base64,${inline.data}` });
       }
     }

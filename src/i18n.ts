@@ -140,6 +140,24 @@ const UI_STRINGS: Record<string, Record<Lang, string>> = {
   // ── Result Section ──
   'result.products': { en: 'Recommended SCG Products', th: 'สินค้า SCG แนะนำ' },
 
+  // ── Bill of Materials Panel ──
+  'bom.eyebrow': { en: 'Materials & Cost', th: 'วัสดุและราคา' },
+  'bom.computing': { en: 'Picking SCG products for this style…', th: 'กำลังจับคู่สินค้า SCG สำหรับสไตล์นี้…' },
+  'bom.totalLabel': { en: 'Total estimated cost', th: 'ราคารวมประมาณ' },
+  'bom.disclaimer': {
+    en: 'Estimated retail prices in THB. Demo catalog — final quote at any SCG Home store.',
+    th: 'ราคาประมาณการเป็นบาท คาตาล็อกตัวอย่าง — ใบเสนอราคาจริงที่ร้าน SCG Home',
+  },
+  'bom.empty': { en: 'No products matched this style.', th: 'ยังไม่มีสินค้าที่ตรงกับสไตล์นี้' },
+  'bom.area': { en: '{area} m² · {zone}', th: '{area} ตร.ม. · {zone}' },
+  'bom.zone.wet': { en: 'wet zone', th: 'พื้นที่เปียก' },
+  'bom.zone.dry': { en: 'dry zone', th: 'พื้นที่แห้ง' },
+  'bom.qty.m2': { en: '{qty} m² × ฿{price}', th: '{qty} ตร.ม. × ฿{price}' },
+  'bom.qty.piece': { en: '{qty} × ฿{price}', th: '{qty} ชิ้น × ฿{price}' },
+  'bom.qty.can': { en: '{qty} × 9L · ฿{price}', th: '{qty} กระป๋อง 9L · ฿{price}' },
+  'loading.recommending': { en: 'Designing your renovation…', th: 'กำลังออกแบบรายการรีโนเวต...' },
+  'loading.recommending.sub': { en: 'Picking SCG products that fit your style', th: 'กำลังเลือกสินค้า SCG ให้ตรงกับสไตล์ของคุณ' },
+
   // ── Custom Style Card ──
   'custom.label': { en: 'Your Custom Style', th: 'สไตล์เฉพาะของคุณ' },
   'custom.desc': { en: 'Personalized design based on your quiz answers', th: 'การออกแบบเฉพาะตัว จากคำตอบของคุณ' },
