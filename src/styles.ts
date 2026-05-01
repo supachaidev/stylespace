@@ -36,15 +36,25 @@ import { t, getLang } from './i18n';
  * picker after the user completes the quiz. Its prompt is dynamically
  * built from the user's specific quiz answers (see quiz.ts).
  *
+ * The optional `description` parameter is what shows under the title on
+ * the custom style card and as the subhead on the result page; pass the
+ * answer summary from buildAnswerSummary() so the user sees a real
+ * description of the design rather than the generic placeholder.
+ *
  * @param prompt         The custom Gemini prompt built from quiz promptTags
  * @param closestPreset  The highest-scoring predefined style (used for SCG products)
+ * @param description    Optional human-readable summary; falls back to the i18n placeholder
  * @returns              A StylePreset with id="custom"
  */
-export function createCustomStyle(prompt: string, closestPreset: StylePreset): StylePreset {
+export function createCustomStyle(
+  prompt: string,
+  closestPreset: StylePreset,
+  description?: string,
+): StylePreset {
   return {
     id: 'custom',
     label: t('custom.label'),
-    description: t('custom.desc'),
+    description: description && description.trim() ? description : t('custom.desc'),
     // Gradient from accent red to gold — visually distinguishes the custom card
     thumbnail: 'linear-gradient(135deg, var(--accent), var(--accent-gold))',
     prompt,

@@ -35,7 +35,7 @@
  */
 
 import { getStylePresets, createCustomStyle, createRandomStyle } from './styles';
-import { getQuizQuestions, calculateResult, getMaxScore, type QuizResult } from './quiz';
+import { getQuizQuestions, calculateResult, getMaxScore, buildAnswerSummary, type QuizResult } from './quiz';
 import { t, getLang, setLang, onLangChange } from './i18n';
 import { resizeImageFile } from './lib/resize';
 import type { StylePreset, AnalyzeResponse, RenderResponse, RecommendResponse, BomLine, RoomInfo, SharePayload, ShareResponse } from './types';
@@ -273,9 +273,15 @@ async function finishQuiz(): Promise<void> {
   // Calculate which styles match the user's answers
   quizResult = calculateResult(quizAnswers);
 
-  // Create the custom style using the quiz's prompt tags
+  // Create the custom style using the quiz's prompt tags. The description
+  // is derived from the user's actual answer labels so the card reads like
+  // a design summary rather than meta-text.
   const closestPreset = getStylePresets().find(s => s.id === quizResult!.topStyleId) ?? getStylePresets()[0];
-  customStyle = createCustomStyle(quizResult.customPrompt, closestPreset);
+  customStyle = createCustomStyle(
+    quizResult.customPrompt,
+    closestPreset,
+    buildAnswerSummary(quizAnswers),
+  );
 
   // Generate the first render with the user's custom style
   await generateFirstRender(customStyle);
@@ -397,10 +403,15 @@ function showStylePicker(pushHistory: boolean): void {
     return (scoreMap.get(b.id) ?? -1) - (scoreMap.get(a.id) ?? -1);
   });
 
-  // Rebuild custom style with current language labels
+  // Rebuild custom style with current language labels (the answer summary
+  // recomputes from getQuizQuestions(), which is locale-aware).
   if (customStyle && quizResult) {
     const closestPreset = presets.find(s => s.id === quizResult!.topStyleId) ?? presets[0];
-    customStyle = createCustomStyle(quizResult.customPrompt, closestPreset);
+    customStyle = createCustomStyle(
+      quizResult.customPrompt,
+      closestPreset,
+      buildAnswerSummary(quizAnswers),
+    );
   }
 
   // Show "Download All" only when multiple renders have been generated
@@ -1078,7 +1089,11 @@ function refreshCurrentView(): void {
     // Refresh the result view with re-translated style labels
     const presets = getStylePresets();
     const freshStyle = currentStyle.id === 'custom'
-      ? createCustomStyle(currentStyle.prompt, presets.find(s => s.id === quizResult?.topStyleId) ?? presets[0])
+      ? createCustomStyle(
+          currentStyle.prompt,
+          presets.find(s => s.id === quizResult?.topStyleId) ?? presets[0],
+          buildAnswerSummary(quizAnswers),
+        )
       : presets.find(s => s.id === currentStyle!.id) ?? currentStyle;
     currentStyle = freshStyle;
     document.getElementById('result-style-name')!.textContent = freshStyle.label;

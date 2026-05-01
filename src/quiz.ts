@@ -228,3 +228,29 @@ The design should feel intentional and curated, not random.`;
 export function getMaxScore(): number {
   return QUIZ_BASE.length * 3;
 }
+
+
+/**
+ * Build a human-readable summary of the user's quiz answers in the current
+ * language. Used as the description of the "Made for You" custom style card,
+ * so the user sees their actual design choices instead of a generic
+ * "personalized for you" tagline.
+ *
+ * Each question contributes the leading phrase of its selected option label
+ * (everything before " — ", a comma, or the Thai " เหมือน " qualifier),
+ * joined with " · ". Falls back to the full label when no separator exists.
+ *
+ * @param answers Array of selected option indices (one per question)
+ * @returns Comma-separated summary string, e.g. "สดใส สว่าง · ขาวและเทาอ่อน · …"
+ */
+export function buildAnswerSummary(answers: number[]): string {
+  const questions = getQuizQuestions();
+  const parts: string[] = [];
+  for (let i = 0; i < answers.length && i < questions.length; i++) {
+    const opt = questions[i].options[answers[i]];
+    if (!opt) continue;
+    const lead = opt.label.split(/ — | เหมือน |, /)[0].trim();
+    if (lead) parts.push(lead);
+  }
+  return parts.join(' · ');
+}
