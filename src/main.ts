@@ -408,7 +408,11 @@ function showStylePicker(pushHistory: boolean): void {
 
   // Rebuild custom style with current language labels (the answer summary
   // recomputes from getQuizQuestions(), which is locale-aware).
-  if (customStyle && quizResult) {
+  // Skip rebuild if quizAnswers is empty — that happens after Retake Quiz,
+  // where quizResult/customStyle are kept but the answer cursor is reset.
+  // Rebuilding with [] would replace the real summary with the generic
+  // i18n fallback ("Personalized design from your answers").
+  if (customStyle && quizResult && quizAnswers.length > 0) {
     const closestPreset = presets.find(s => s.id === quizResult!.topStyleId) ?? presets[0];
     customStyle = createCustomStyle(
       quizResult.customPrompt,
@@ -1104,14 +1108,19 @@ function refreshCurrentView(): void {
   if (currentView === 'quiz') renderQuizStep();
   if (currentView === 'styles') showStylePicker(false);
   if (currentView === 'result' && currentStyle) {
-    // Refresh the result view with re-translated style labels
+    // Refresh the result view with re-translated style labels.
+    // For the custom style, only rebuild when we still have the answers —
+    // otherwise we'd overwrite the real summary description with the
+    // generic fallback (see the matching guard in showStylePicker).
     const presets = getStylePresets();
     const freshStyle = currentStyle.id === 'custom'
-      ? createCustomStyle(
-          currentStyle.prompt,
-          presets.find(s => s.id === quizResult?.topStyleId) ?? presets[0],
-          buildAnswerSummary(quizAnswers),
-        )
+      ? (quizAnswers.length > 0
+          ? createCustomStyle(
+              currentStyle.prompt,
+              presets.find(s => s.id === quizResult?.topStyleId) ?? presets[0],
+              buildAnswerSummary(quizAnswers),
+            )
+          : currentStyle)
       : presets.find(s => s.id === currentStyle!.id) ?? currentStyle;
     currentStyle = freshStyle;
     document.getElementById('result-style-name')!.textContent = freshStyle.label;
@@ -1202,11 +1211,13 @@ document.addEventListener('DOMContentLoaded', () => {
     generateFirstRender(createRandomStyle());
   });
   document.getElementById('retake-quiz-btn')!.addEventListener('click', () => {
-    // Reset quiz state and start over
+    // Reset only the in-progress quiz cursor. quizResult and customStyle
+    // are kept until the new quiz finishes — finishQuiz overwrites both —
+    // so a browser-back from this retake can still rehydrate a previous
+    // ?custom result via restoreState. Nulling them here would leave the
+    // back stack pointing at a result we can no longer reconstruct.
     quizAnswers = [];
     quizStep = 0;
-    quizResult = null;
-    customStyle = null;
     showSectionRaw('quiz');
     renderQuizStep();
     pushState({ view: 'quiz' });
