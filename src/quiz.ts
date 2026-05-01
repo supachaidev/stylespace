@@ -143,6 +143,7 @@ export interface QuizResult {
   ranked: { styleId: string; score: number }[];  // All styles sorted by score (highest first)
   topStyleId: string;                             // ID of the highest-scoring style
   customPrompt: string;                           // Custom Gemini prompt built from all answer tags
+  tags: string[];                                 // Deduped raw English prompt tags (used to personalise BOM rationales)
 }
 
 
@@ -189,6 +190,7 @@ export function calculateResult(answers: number[]): QuizResult {
     ranked,
     topStyleId: ranked[0]?.styleId ?? 'modern-minimal',
     customPrompt,
+    tags: [...new Set(allTags)],
   };
 }
 

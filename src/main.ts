@@ -295,6 +295,9 @@ async function getBomForStyle(style: StylePreset): Promise<RecommendResponse | n
       rooms: currentAnalysis.rooms,
       style_label: style.label,
       style_prompt: style.prompt,
+      // Forward the user's quiz answers so Claude can reference them in the
+      // per-pick reasons and overall rationale ("you said you cook every day…").
+      quiz_tags: quizResult?.tags ?? [],
     }),
   });
   const data = await res.json() as RecommendResponse;

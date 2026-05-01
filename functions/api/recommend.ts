@@ -40,6 +40,8 @@ interface RecommendBody {
   rooms: RoomInput[];
   style_label: string;
   style_prompt: string;
+  /** Optional lifestyle tags from the quiz — used to personalise rationales. */
+  quiz_tags?: string[];
 }
 
 interface ClaudePick {
@@ -126,17 +128,19 @@ function buildBomLines(claude: ClaudeResponse, roomIds: Set<string>): BomLine[] 
   return lines;
 }
 
-async function cacheKey(rooms: RoomInput[], stylePrompt: string): Promise<string> {
+async function cacheKey(rooms: RoomInput[], stylePrompt: string, quizTags: string[]): Promise<string> {
   // Hash a stable shape: only the fields that influence the BOM. We omit
   // labels because Claude doesn't read them at this step (the room's type,
-  // size, and zone are what matter).
+  // size, and zone are what matter). Quiz tags are sorted so a different
+  // answer order with the same tag set still hits the cache.
   const compact = rooms.map((r) => ({
     id: r.id, type: r.type, area: Math.round(r.area_sqm * 10) / 10,
     zone: r.zone, fixtures: [...r.fixtures].sort(),
   }));
   const roomsHash = await sha256Hex(JSON.stringify(compact), 16);
   const styleHash = await sha256Hex(stylePrompt, 12);
-  return `recommend_${roomsHash}_${styleHash}`;
+  const tagsHash = await sha256Hex([...quizTags].sort().join('|'), 8);
+  return `recommend_${roomsHash}_${styleHash}_${tagsHash}`;
 }
 
 export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
@@ -145,19 +149,22 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
     const rooms = Array.isArray(body?.rooms) ? body.rooms : [];
     const styleLabel = typeof body?.style_label === 'string' ? body.style_label : '';
     const stylePrompt = typeof body?.style_prompt === 'string' ? body.style_prompt : '';
+    const quizTags = Array.isArray(body?.quiz_tags)
+      ? body.quiz_tags.filter((t): t is string => typeof t === 'string').slice(0, 30)
+      : [];
 
     if (rooms.length === 0 || !stylePrompt) {
       return Response.json({ error: 'Missing rooms or style_prompt' }, { status: 400 });
     }
 
-    // Cache check — same rooms+style on a repeat click skips Claude.
-    const key = await cacheKey(rooms, stylePrompt);
+    // Cache check — same rooms+style+tags on a repeat click skips Claude.
+    const key = await cacheKey(rooms, stylePrompt, quizTags);
     const cached = await env.STYLESPACE_RENDER_CACHE.get(key);
     if (cached) {
       return Response.json(JSON.parse(cached) as RecommendResponse);
     }
 
-    const prompt = buildRecommendPrompt(rooms, styleLabel, stylePrompt, catalogForPrompt());
+    const prompt = buildRecommendPrompt(rooms, styleLabel, stylePrompt, catalogForPrompt(), quizTags);
 
     const client = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY });
     const message = await client.messages.create({

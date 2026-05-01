@@ -140,16 +140,24 @@ export function buildRecommendPrompt(
   styleLabel: string,
   stylePrompt: string,
   catalogText: string,
+  quizTags: string[] = [],
 ): string {
   const roomsBlock = rooms.map((r) =>
     `  - ${r.id}: "${r.label}" (type=${r.type}, area=${r.area_sqm} m², zone=${r.zone}, fixtures=[${r.fixtures.join(',') || 'none'}])`
   ).join('\n');
 
+  // The lifestyle profile lets Claude tie picks back to the user's actual
+  // quiz answers — "you said you cook every day" lands harder than a
+  // generic style-based justification.
+  const profileBlock = quizTags.length > 0
+    ? `\nUSER LIFESTYLE PROFILE (from a 6-question quiz the user just took):\n${quizTags.map((tag) => `  - ${tag}`).join('\n')}\n\nWhen writing reasons and the rationale, reference SPECIFIC items from this profile (not the style label). Examples: "your cook-every-day kitchen needs a durable matte porcelain", "the spa-like bathroom you wanted pairs well with the freestanding tub". Each reason_en/th should connect to either a profile item OR a concrete material property — never just restate the style.\n`
+    : '';
+
   return `You are a Thai interior-renovation specialist building a SCG bill of materials for a homeowner.
 
 DESIGN STYLE: ${styleLabel}
 STYLE NOTES: ${stylePrompt}
-
+${profileBlock}
 ROOMS (from the floor-plan analysis):
 ${roomsBlock}
 
