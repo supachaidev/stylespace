@@ -231,6 +231,9 @@ function renderQuizStep(): void {
   q.options.forEach((option, idx) => {
     const btn = document.createElement('button');
     btn.className = 'quiz-option';
+    // Stagger the entrance animation defined in style.css. Capped so
+    // very long option lists never feel slow to fully appear.
+    btn.style.animationDelay = `${Math.min(idx, 6) * 35}ms`;
     btn.innerHTML = `
       <span class="quiz-option-icon">${option.icon}</span>
       <span class="quiz-option-label">${option.label}</span>
@@ -421,11 +424,14 @@ function showStylePicker(pushHistory: boolean): void {
   const allStyles: StylePreset[] = customStyle ? [customStyle, ...sortedStyles] : sortedStyles;
 
   // Render a card for each style
-  for (const style of allStyles) {
+  allStyles.forEach((style, idx) => {
     const card = document.createElement('div');
     card.className = 'style-card';
     if (style.id === 'custom') card.classList.add('custom-style-card');
     card.setAttribute('data-style-id', style.id);
+    // Stagger the cardEnter animation; cap so the last card never feels
+    // delayed (after ~9 cards the eye no longer reads the wave anyway).
+    card.style.animationDelay = `${Math.min(idx, 9) * 35}ms`;
 
     // Use cached render as thumbnail if available, otherwise show CSS gradient
     const cached = renderCache.get(style.id);
@@ -448,7 +454,7 @@ function showStylePicker(pushHistory: boolean): void {
     card.innerHTML = `${thumbContent}<div class="style-info"><h3>${style.label}${badge}</h3><p>${style.description}</p></div>`;
     card.addEventListener('click', () => selectStyle(style));
     grid.appendChild(card);
-  }
+  });
 }
 
 
@@ -751,13 +757,25 @@ function downloadCurrentRender(): void {
 
 /** Show a brief toast message at the bottom of the screen. */
 let toastTimer: ReturnType<typeof setTimeout> | null = null;
+let toastHideTimer: ReturnType<typeof setTimeout> | null = null;
 function showToast(message: string, durationMs = 2200): void {
   const toast = document.getElementById('toast');
   if (!toast) return;
   toast.textContent = message;
   toast.classList.remove('hidden');
+  toast.classList.remove('leaving');
   if (toastTimer) clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => toast.classList.add('hidden'), durationMs);
+  if (toastHideTimer) clearTimeout(toastHideTimer);
+  // Two-phase dismissal: add .leaving so the toastExit keyframe plays,
+  // then hard-hide once the 200ms animation has finished. Without this
+  // the toast disappears mid-attention and feels broken.
+  toastTimer = setTimeout(() => {
+    toast.classList.add('leaving');
+    toastHideTimer = setTimeout(() => {
+      toast.classList.add('hidden');
+      toast.classList.remove('leaving');
+    }, 200);
+  }, durationMs);
 }
 
 /**

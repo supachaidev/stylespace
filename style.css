@@ -118,11 +118,18 @@
   --radius-image:    14px;     /* images inside cards */
   --radius-pill:     980px;    /* fully rounded capsules */
 
-  /* Easing & duration — iOS spring feel */
+  /* Easing & duration — iOS spring feel.
+     - snappy   : ease-out — for entrances, presses, color/hover hand-off
+     - spring   : overshoot — for delight moments (checkmarks, toasts in)
+     - smooth   : ease-in-out — for on-screen movement (progress fills)
+     Reserve spring for transforms only; on color/box-shadow it reads as a
+     glitch because the value undershoots/overshoots a non-spatial property. */
   --ease-snappy: cubic-bezier(0.32, 0.72, 0, 1);
   --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
   --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
-  --duration:    0.3s;
+  --duration-fast: 160ms;     /* hovers, color tints, small state shifts */
+  --duration:      220ms;     /* default — most UI transitions */
+  --duration-slow: 300ms;     /* section enters, large surfaces */
 
   /* Shadow — soft, low Y, neutral. Apple keeps shadows subtle. */
   --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.18), 0 4px 14px rgba(0, 0, 0, 0.18);
@@ -258,7 +265,7 @@ header {
   color: var(--label);
   padding: 4px 6px;
   border-radius: var(--radius-small);
-  transition: background var(--duration) var(--ease-smooth);
+  transition: background var(--duration-fast) var(--ease-smooth);
 }
 
 .logo:hover {
@@ -347,7 +354,7 @@ header {
   justify-content: center;
   padding: 0;
   color: var(--label);
-  transition: background var(--duration) var(--ease-smooth),
+  transition: background var(--duration-fast) var(--ease-smooth),
               transform 120ms var(--ease-snappy);
 }
 
@@ -405,13 +412,14 @@ main {
   z-index: 1;
 }
 
-/* iOS-style content fade with a tiny scale. Mirrors a sheet presentation. */
+/* iOS-style content fade with a tiny scale. Mirrors a sheet presentation.
+   Kept under 300ms — anything longer reads as sluggish on a section swap. */
 main > section {
-  animation: contentEnter 0.45s var(--ease-snappy) both;
+  animation: contentEnter var(--duration-slow) var(--ease-snappy) both;
 }
 
 @keyframes contentEnter {
-  from { opacity: 0; transform: translateY(6px) scale(0.99); }
+  from { opacity: 0; transform: translateY(8px) scale(0.985); }
   to   { opacity: 1; transform: translateY(0)    scale(1); }
 }
 
@@ -441,14 +449,16 @@ main > section {
   overflow: hidden;
 }
 
-#upload-zone:hover {
-  box-shadow:
-    inset 0 0 0 0.5px var(--label-3),
-    var(--shadow-2);
+@media (hover: hover) and (pointer: fine) {
+  #upload-zone:hover {
+    box-shadow:
+      inset 0 0 0 0.5px var(--label-3),
+      var(--shadow-2);
+  }
 }
 
 #upload-zone:active {
-  transform: scale(0.997);
+  transform: scale(0.995);
   box-shadow:
     inset 0 0 0 0.5px var(--separator),
     var(--shadow-1);
@@ -475,15 +485,19 @@ main > section {
   background: linear-gradient(135deg, var(--tint-bg) 0%, var(--fill-4) 100%);
   box-shadow: inset 0 0 0 0.5px var(--separator);
   color: var(--tint);
+  /* Spring on transform only — overshoot on a colour value reads as a glitch.
+     Background and box-shadow ride the standard ease-out curve. */
   transition: transform var(--duration) var(--ease-spring),
-              background var(--duration) var(--ease-smooth),
-              box-shadow var(--duration) var(--ease-smooth);
+              background var(--duration) var(--ease-snappy),
+              box-shadow var(--duration) var(--ease-snappy);
 }
 
-#upload-zone:hover .upload-icon-wrapper {
-  transform: translateY(-2px);
-  background: linear-gradient(135deg, var(--tint-bg) 0%, var(--tint-bg-soft) 100%);
-  box-shadow: inset 0 0 0 0.5px var(--tint);
+@media (hover: hover) and (pointer: fine) {
+  #upload-zone:hover .upload-icon-wrapper {
+    transform: translateY(-2px);
+    background: linear-gradient(135deg, var(--tint-bg) 0%, var(--tint-bg-soft) 100%);
+    box-shadow: inset 0 0 0 0.5px var(--tint);
+  }
 }
 
 .upload-icon-ring {
@@ -492,7 +506,20 @@ main > section {
   border-radius: calc(var(--radius-control) + 4px);
   border: 1.5px solid var(--tint);
   opacity: 0;
-  animation: pulseRing 2.4s var(--ease-smooth) infinite;
+  transform: scale(0.96);
+  /* No infinite loop in the resting state — perpetual motion on a screen
+     users return to constantly violates the "100+ daily" rule. The ring
+     only pulses while the user is actively engaging the drop zone. */
+}
+
+#upload-zone.drag-over .upload-icon-ring {
+  animation: pulseRing 1.6s var(--ease-snappy) infinite;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  #upload-zone:hover .upload-icon-ring {
+    animation: pulseRing 1.8s var(--ease-snappy) infinite;
+  }
 }
 
 @keyframes pulseRing {
@@ -770,7 +797,9 @@ main > section {
   height: 100%;
   background: var(--tint);
   border-radius: 2px;
-  transition: width 0.5s var(--ease-snappy);
+  /* Movement on screen → ease-in-out feel; kept brisk so the bar arrives
+     before the next question's options finish staggering in. */
+  transition: width 380ms var(--ease-smooth);
   width: 0%;
 }
 
@@ -818,6 +847,13 @@ main > section {
   position: relative;
   transition: background 120ms var(--ease-smooth);
   min-height: 52px;
+  /* Each option drops in with a small offset; main.ts sets per-row delay. */
+  animation: optionEnter 240ms var(--ease-snappy) both;
+}
+
+@keyframes optionEnter {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
 /* Divider between rows — inset from the left to clear the icon, like iOS */
@@ -861,7 +897,10 @@ main > section {
           mask-position: center;
   -webkit-mask-size: 22px;
           mask-size: 22px;
-  animation: checkPop 320ms var(--ease-spring) both;
+  /* Spring overshoot for delight on a rare moment (one click per question).
+     Kept under 240ms so the full pop completes before the 250ms advance
+     timer in main.ts swaps the question — otherwise the check is cut off. */
+  animation: checkPop 220ms var(--ease-spring) both;
 }
 
 @keyframes checkPop {
@@ -942,11 +981,21 @@ main > section {
               border-color var(--duration) var(--ease-smooth);
   display: flex;
   flex-direction: column;
+  /* Cards rise into the grid with a per-index delay set in main.ts —
+     reads as a real surface arriving rather than a flat snap-in. */
+  animation: cardEnter 320ms var(--ease-snappy) both;
 }
 
-.style-card:hover {
-  transform: translateY(-3px);
-  box-shadow: var(--shadow-2);
+@keyframes cardEnter {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .style-card:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-2);
+  }
 }
 
 .style-card:active {
@@ -1670,6 +1719,12 @@ main > section {
   font-weight: 600;
   margin-bottom: 16px;
   border: 0.5px solid var(--tint);
+  animation: bannerEnter 280ms var(--ease-snappy) both;
+}
+
+@keyframes bannerEnter {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
 .toast {
@@ -1688,16 +1743,29 @@ main > section {
   -webkit-backdrop-filter: saturate(180%) blur(20px);
   box-shadow: var(--shadow-2);
   z-index: 200;
-  animation: toastEnter 0.3s var(--ease-spring);
+  animation: toastEnter 280ms var(--ease-spring);
   white-space: nowrap;
   max-width: calc(100vw - 32px);
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
+/* Dismissal — main.ts adds .leaving ~200ms before hiding so the toast
+   doesn't pop out of existence. Exit is faster than entrance per the
+   "exit can be ~20% faster" guideline, and uses ease-snappy (no spring)
+   because there's no delight value in an exit overshoot. */
+.toast.leaving {
+  animation: toastExit 200ms var(--ease-snappy) forwards;
+}
+
 @keyframes toastEnter {
   from { opacity: 0; transform: translateX(-50%) translateY(8px); }
   to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+@keyframes toastExit {
+  from { opacity: 1; transform: translateX(-50%) translateY(0); }
+  to   { opacity: 0; transform: translateX(-50%) translateY(6px); }
 }
 
 
@@ -1712,6 +1780,17 @@ main > section {
   left: 50%;
   transform: translateX(-50%);
   z-index: 100;
+}
+
+/* Slides up from below the bottom edge as soon as it's unhidden.
+   :not(.hidden) keeps the animation from re-firing while it sits idle. */
+#generating-overlay:not(.hidden) {
+  animation: overlayEnter 240ms var(--ease-snappy) both;
+}
+
+@keyframes overlayEnter {
+  from { opacity: 0; transform: translate(-50%, 8px); }
+  to   { opacity: 1; transform: translate(-50%, 0); }
 }
 
 .overlay-content {
