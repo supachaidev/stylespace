@@ -89,6 +89,31 @@ export interface RecommendResponse {
 
 
 /**
+ * Body sent to POST /api/share and returned by GET /api/share?id=...
+ *
+ * Contains everything the result page needs to render a result without
+ * re-running the AI pipeline: the render image, the BOM, the style metadata,
+ * and the floor-plan analysis (so the BOM panel can group lines by room
+ * with their dimensions). The original quiz tags ride along too in case
+ * the recipient wants to see the rationale that was generated.
+ */
+export interface SharePayload {
+  render_url: string;
+  style_id: string;
+  style_label: string;
+  style_description: string;
+  bom: RecommendResponse;
+  analysis: AnalyzeResponse;
+  quiz_tags?: string[];
+}
+
+export interface ShareResponse {
+  id: string;
+  error?: string;
+}
+
+
+/**
  * Response from the POST /api/analyze endpoint.
  *
  * Contains the structured room data extracted from a floor plan image.

@@ -38,7 +38,7 @@ import { getStylePresets, createCustomStyle, createRandomStyle } from './styles'
 import { getQuizQuestions, calculateResult, getMaxScore, type QuizResult } from './quiz';
 import { t, getLang, setLang, onLangChange } from './i18n';
 import { resizeImageFile } from './lib/resize';
-import type { StylePreset, AnalyzeResponse, RenderResponse, RecommendResponse, BomLine, RoomInfo } from './types';
+import type { StylePreset, AnalyzeResponse, RenderResponse, RecommendResponse, BomLine, RoomInfo, SharePayload, ShareResponse } from './types';
 
 // Max image dimensions sent to each API. Matches the previous Python
 // backend's Pillow.resize() values. Smaller = cheaper Gemini/Claude calls.
@@ -88,6 +88,14 @@ let customStyle: StylePreset | null = null; // The "Made for You" custom style p
 
 /** Tracks which section is currently visible (used for language refresh) */
 let currentView: 'upload' | 'loading' | 'quiz' | 'styles' | 'result' | 'error' = 'upload';
+
+/**
+ * Whether the current result view was opened via a /?share=<id> link.
+ * In shared mode we hide actions that don't make sense without the
+ * original session (Regenerate / Try Another Style would re-call APIs
+ * with no floor-plan file to upload).
+ */
+let isSharedView = false;
 
 
 // ─── Browser History (Back/Forward Navigation) ──────────────────────────────
@@ -723,6 +731,218 @@ function downloadCurrentRender(): void {
   downloadDataUrl(url, `stylespace-${currentStyle.id}.png`);
 }
 
+// ─── Share Link ─────────────────────────────────────────────────────────────
+//
+// Persists the current result snapshot (render + BOM + style + analysis +
+// quiz tags) via /api/share, then copies the resulting URL to the clipboard.
+// On page load we check for ?share=<id> and call /api/share?id=... to
+// restore the result view without running the AI pipeline.
+
+/** Show a brief toast message at the bottom of the screen. */
+let toastTimer: ReturnType<typeof setTimeout> | null = null;
+function showToast(message: string, durationMs = 2200): void {
+  const toast = document.getElementById('toast');
+  if (!toast) return;
+  toast.textContent = message;
+  toast.classList.remove('hidden');
+  if (toastTimer) clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => toast.classList.add('hidden'), durationMs);
+}
+
+/**
+ * Last-resort clipboard fallback for browsers that lack both the modern
+ * Clipboard API and the gesture-bound ClipboardItem path.
+ */
+function execCommandCopy(text: string): boolean {
+  try {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.left = '-9999px';
+    document.body.appendChild(ta);
+    ta.select();
+    const ok = document.execCommand('copy');
+    document.body.removeChild(ta);
+    return ok;
+  } catch {
+    return false;
+  }
+}
+
+async function shareCurrentResult(): Promise<void> {
+  if (!currentStyle || !currentBom || !currentAnalysis) return;
+  const renderUrl = renderCache.get(currentStyle.id);
+  if (!renderUrl) return;
+
+  const btn = document.getElementById('share-btn') as HTMLButtonElement | null;
+  if (btn) btn.disabled = true;
+
+  // Kick off the API request immediately — its result becomes the share URL.
+  const urlPromise = (async (): Promise<string> => {
+    const payload: SharePayload = {
+      render_url: renderUrl,
+      style_id: currentStyle!.id,
+      style_label: currentStyle!.label,
+      style_description: currentStyle!.description,
+      bom: currentBom!,
+      analysis: currentAnalysis!,
+      quiz_tags: quizResult?.tags,
+    };
+    const res = await fetch('/api/share', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json() as ShareResponse;
+    if (!res.ok || !data.id) throw new Error(data.error ?? 'share failed');
+    return `${location.origin}${location.pathname}?share=${data.id}`;
+  })();
+
+  // Safari (and recent Chrome) consume the user-gesture activation when an
+  // `await` sits between the click and a clipboard call, which makes a
+  // straightforward `await fetch; await writeText` reject with NotAllowed.
+  // The ClipboardItem-with-Promise<Blob> form sidesteps that: we call
+  // clipboard.write() synchronously inside the click, handing it a Promise
+  // that the browser will await on our behalf — the gesture stays bound.
+  let copyResult: 'gesture' | 'fallback-ok' | 'fallback-fail' = 'fallback-fail';
+  let url = '';
+
+  try {
+    if (typeof ClipboardItem !== 'undefined' && navigator.clipboard?.write) {
+      const blobPromise = urlPromise.then((u) => new Blob([u], { type: 'text/plain' }));
+      // Some TS lib targets type ClipboardItem's value as Blob only; cast
+      // through unknown so the Promise<Blob> form (per the spec) still type-checks.
+      const item = new ClipboardItem({ 'text/plain': blobPromise as unknown as Blob });
+      await navigator.clipboard.write([item]);
+      url = await urlPromise;
+      copyResult = 'gesture';
+    } else {
+      // No ClipboardItem at all — wait for the URL, then try writeText
+      // (works in Chrome/Edge even after awaits) or the textarea fallback.
+      url = await urlPromise;
+      try {
+        await navigator.clipboard?.writeText(url);
+        copyResult = 'fallback-ok';
+      } catch {
+        copyResult = execCommandCopy(url) ? 'fallback-ok' : 'fallback-fail';
+      }
+    }
+  } catch {
+    // Either the API failed or the gesture-bound write rejected. Try one
+    // last sync copy with the URL we may now have.
+    if (!url) {
+      try { url = await urlPromise; } catch { url = ''; }
+    }
+    if (url) {
+      copyResult = execCommandCopy(url) ? 'fallback-ok' : 'fallback-fail';
+    }
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+
+  if (!url) {
+    showToast(t('share.error'));
+    return;
+  }
+
+  if (copyResult === 'gesture' || copyResult === 'fallback-ok') {
+    showToast(`${t('share.copied')} · ${url}`, 2800);
+  } else {
+    showToast(`${t('share.copyFailed')} ${url}`, 8000);
+  }
+}
+
+/**
+ * Try to restore a result view from `?share=<id>` in the URL. Returns true
+ * if a share was loaded (caller should NOT show the upload screen).
+ */
+async function tryLoadFromShareLink(): Promise<boolean> {
+  const shareId = new URLSearchParams(location.search).get('share');
+  if (!shareId) return false;
+
+  showSectionRaw('loading');
+  updateLoadingText(t('share.viewing'), '');
+
+  try {
+    const res = await fetch(`/api/share?id=${encodeURIComponent(shareId)}`);
+    if (!res.ok) {
+      showError(t('share.notFound'));
+      return true;
+    }
+    const data = await res.json() as SharePayload;
+
+    // Hydrate session state from the snapshot. We treat the shared payload
+    // as if it were a freshly generated result — same caches, same render
+    // pipeline state — minus the original floor-plan File which the
+    // recipient doesn't have.
+    currentAnalysis = data.analysis;
+    currentBom = data.bom;
+    baseRender = data.render_url;
+    renderCache.set(data.style_id, data.render_url);
+    bomCache.set(data.style_id, data.bom);
+
+    const restoredStyle: StylePreset = {
+      id: data.style_id,
+      label: data.style_label,
+      description: data.style_description,
+      thumbnail: 'linear-gradient(135deg, var(--tint), var(--tint-pressed))',
+      prompt: '',
+      scgProducts: [],
+    };
+
+    isSharedView = true;
+    showResultRaw(data.render_url, restoredStyle, data.bom);
+    applySharedViewChrome();
+    return true;
+  } catch {
+    showError(t('share.notFound'));
+    return true;
+  }
+}
+
+/** Show the shared-view banner and hide actions that need the original session. */
+function applySharedViewChrome(): void {
+  const banner = document.getElementById('share-banner');
+  const bannerText = document.getElementById('share-banner-text');
+  if (banner && bannerText) {
+    bannerText.textContent = t('share.viewing');
+    banner.classList.remove('hidden');
+  }
+  // Recipient has no floor plan to regenerate from, and re-styling would
+  // call the API for a brand-new render they don't expect — hide both.
+  document.getElementById('regenerate-btn')?.classList.add('hidden');
+  document.getElementById('try-another-style-btn')?.classList.add('hidden');
+}
+
+
+// ─── Save Quote (Print) ────────────────────────────────────────────────────
+//
+// Opens the OS print dialog so the user can save the result page as a PDF.
+// We populate the print-only header (hidden in normal view, revealed by the
+// @media print rules in style.css) with the current style + date + room
+// count so the printed quote reads as a real document.
+
+function saveQuoteAsPdf(): void {
+  if (!currentStyle) return;
+  const titleEl = document.getElementById('print-title');
+  const metaEl = document.getElementById('print-meta');
+  if (titleEl) {
+    titleEl.textContent = t('print.title').replace('{style}', currentStyle.label);
+  }
+  if (metaEl) {
+    const lang = getLang();
+    const date = new Intl.DateTimeFormat(lang === 'th' ? 'th-TH' : 'en-GB', {
+      year: 'numeric', month: 'long', day: 'numeric',
+    }).format(new Date());
+    const rooms = currentAnalysis?.total_rooms ?? 0;
+    metaEl.textContent = t('print.meta')
+      .replace('{date}', date)
+      .replace('{rooms}', String(rooms));
+  }
+  window.print();
+}
+
+
 /** Download all cached renders (one file per style, staggered to avoid browser blocking) */
 function downloadAllRenders(): void {
   const presets = getStylePresets();
@@ -799,6 +1019,17 @@ function resetApp(): void {
   quizResult = null;
   customStyle = null;
   (document.getElementById('file-input') as HTMLInputElement).value = '';
+
+  // Leaving shared view — restore normal chrome and clear ?share from URL.
+  if (isSharedView) {
+    isSharedView = false;
+    document.getElementById('share-banner')?.classList.add('hidden');
+    document.getElementById('regenerate-btn')?.classList.remove('hidden');
+    document.getElementById('try-another-style-btn')?.classList.remove('hidden');
+    if (location.search.includes('share=')) {
+      history.replaceState(null, '', location.pathname);
+    }
+  }
 }
 
 
@@ -825,6 +1056,12 @@ function updateStaticText(): void {
   document.getElementById('try-another-style-btn')!.textContent = t('btn.tryAnother');
   document.getElementById('download-btn')!.textContent = t('btn.download');
   document.getElementById('download-all-btn')!.textContent = t('btn.downloadAll');
+  document.getElementById('save-quote-btn')!.textContent = t('btn.saveQuote');
+  document.getElementById('share-btn')!.textContent = t('btn.share');
+  // The shared-view banner text is dynamic — update it whenever the
+  // language changes so the shared visitor sees their preferred locale.
+  const bannerText = document.getElementById('share-banner-text');
+  if (bannerText && isSharedView) bannerText.textContent = t('share.viewing');
   document.querySelector('.styles-header h2')!.textContent = t('styles.title');
   document.getElementById('home-btn')!.textContent = t('btn.home');
   document.getElementById('lang-btn')!.textContent = t('lang.flag');
@@ -921,6 +1158,8 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('regenerate-btn')!.addEventListener('click', () => { if (currentStyle) regenerateRender(currentStyle); });
   document.getElementById('download-btn')!.addEventListener('click', downloadCurrentRender);
   document.getElementById('download-all-btn')!.addEventListener('click', downloadAllRenders);
+  document.getElementById('save-quote-btn')!.addEventListener('click', saveQuoteAsPdf);
+  document.getElementById('share-btn')!.addEventListener('click', shareCurrentResult);
   document.getElementById('new-upload-btn')!.addEventListener('click', () => { resetApp(); pushState({ view: 'upload' }); });
   document.getElementById('skip-quiz-btn')!.addEventListener('click', () => showStylePicker(true));
   document.getElementById('random-style-picker-btn')!.addEventListener('click', () => {
@@ -939,4 +1178,10 @@ document.addEventListener('DOMContentLoaded', () => {
     renderQuizStep();
     pushState({ view: 'quiz' });
   });
+
+  // If the URL carries ?share=<id>, hydrate from the persisted snapshot
+  // instead of showing the upload screen. Async; the upload section is
+  // already visible (default), tryLoadFromShareLink swaps to loading then
+  // result if it succeeds, or to error if the ID is invalid/expired.
+  void tryLoadFromShareLink();
 });

@@ -182,12 +182,33 @@
       ════════════════════════════════════════════════════════════
     -->
     <section id="result-section" class="hidden">
+      <!--
+        Print-only header. Hidden in normal view; shown as a clean
+        quote-document title when the user clicks Save Quote and the OS
+        opens the print dialog. Branded so a printed PDF reads as an
+        actual SCG-Home renovation quote.
+      -->
+      <div class="print-header" aria-hidden="true">
+        <p class="print-brand">StyleSpace &middot; SCG &times; Bangkok University</p>
+        <h1 class="print-title" id="print-title"></h1>
+        <p class="print-meta" id="print-meta"></p>
+      </div>
+      <!--
+        Shared-view banner. Hidden by default; shown when the result page
+        is opened via a ?share=<id> link so the recipient knows they're
+        viewing someone else's design rather than their own session.
+      -->
+      <div class="share-banner hidden" id="share-banner" role="status">
+        <span id="share-banner-text"></span>
+      </div>
       <div class="result-header">
         <div>
           <h2 id="result-style-name"></h2>
           <p class="result-style-desc" id="result-style-desc"></p>
         </div>
         <div class="result-actions">
+          <button id="share-btn" class="btn-secondary">Share</button>
+          <button id="save-quote-btn" class="btn-secondary">Save Quote</button>
           <button id="download-btn" class="btn-secondary">Download</button>
           <button id="regenerate-btn" class="btn-secondary">Regenerate</button>
           <button id="try-another-style-btn" class="btn-primary">Try Another Style</button>
@@ -218,6 +239,9 @@
   <footer>
     <p>Bangkok University × SCG · Senior Project · 2026</p>
   </footer>
+
+  <!-- Vibrancy-material toast that appears for ~2s after Share copies the link -->
+  <div class="toast hidden" id="toast" role="status" aria-live="polite"></div>
 
   <script type="module" src="/src/main.ts"></script>
 </body>

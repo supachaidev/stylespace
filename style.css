@@ -1326,6 +1326,382 @@ main > section {
 
 
 /* ═══════════════════════════════════════════════════════════════════════════
+   PRINT VIEW — Save Quote
+   The result page becomes a printable renovation quote when the user clicks
+   "Save Quote" and the OS print dialog opens. Hide all chrome, show only
+   the brand header, the render thumbnail, and the BOM panel reflowed for
+   paper. .print-header is hidden in normal view and only revealed by the
+   @media print block below.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.print-header {
+  display: none;
+}
+
+@media print {
+  /* Force a clean white sheet — vibrancy materials and dark surfaces don't
+     translate to print and waste ink. */
+  :root,
+  :root[data-theme="light"] {
+    --bg: #FFFFFF;
+    --surface: #FFFFFF;
+    --label: #000000;
+    --label-2: #555555;
+    --label-3: #777777;
+    --separator: #C8C8CC;
+    --shadow-1: none;
+    --shadow-2: none;
+  }
+
+  body {
+    background: #FFFFFF;
+    color: #000000;
+  }
+
+  /* Hide all UI chrome — only the document content prints */
+  .floating-actions,
+  .toolbar,
+  header .tagline,
+  .btn-home,
+  .result-actions,
+  footer {
+    display: none !important;
+  }
+
+  header {
+    padding: 0;
+    margin: 0;
+  }
+
+  header .hero {
+    display: none;
+  }
+
+  main {
+    max-width: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  /* Reveal the print-only header */
+  .print-header {
+    display: block;
+    text-align: left;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #000;
+  }
+
+  .print-brand {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #555;
+    margin-bottom: 6px;
+  }
+
+  .print-title {
+    font-size: 22px;
+    font-weight: 700;
+    color: #000;
+    margin-bottom: 4px;
+    letter-spacing: -0.012em;
+  }
+
+  .print-meta {
+    font-size: 12px;
+    color: #555;
+  }
+
+  /* Hide the in-page result header — replaced by .print-header above */
+  .result-header {
+    display: none;
+  }
+
+  /* Stack render above BOM in linear flow */
+  .result-body {
+    display: block;
+  }
+
+  /* Render thumbnail — keep small so the BOM doesn't get pushed to page 2 */
+  .render-container {
+    margin-bottom: 16px;
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  .render-container img {
+    max-width: 100%;
+    max-height: 300px;
+    width: auto;
+    height: auto;
+    display: block;
+    margin: 0 auto;
+    box-shadow: none;
+    border: 1px solid #C8C8CC;
+    border-radius: 6px;
+  }
+
+  /* BOM panel — strip card chrome, expand to full width */
+  .bom-panel {
+    position: static;
+    max-height: none;
+    overflow: visible;
+    box-shadow: none;
+    border: none;
+    border-radius: 0;
+    padding: 0;
+    background: #FFFFFF;
+    page-break-inside: auto;
+  }
+
+  .bom-eyebrow {
+    color: #000;
+    font-weight: 700;
+    border-top: 1px solid #000;
+    padding-top: 8px;
+  }
+
+  .bom-rationale {
+    color: #000;
+    font-style: italic;
+  }
+
+  /* Each room block stays on one page where possible */
+  .bom-room {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  .bom-line {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  .bom-swatch {
+    border-color: #999;
+  }
+
+  .bom-line-name,
+  .bom-line-total,
+  .bom-room-name {
+    color: #000;
+  }
+
+  .bom-line-reason {
+    color: #444;
+  }
+
+  .bom-line-meta,
+  .bom-line-unit,
+  .bom-room-area,
+  .bom-disclaimer {
+    color: #666;
+  }
+
+  /* Grand total stays on the same page as the last line item where possible */
+  .bom-total {
+    page-break-inside: avoid;
+    break-inside: avoid;
+    border-top: 2px solid #000;
+    margin-top: 12px;
+    padding-top: 12px;
+  }
+
+  .bom-total-value {
+    color: #000;
+  }
+
+  /* Thai has no inter-word spaces, so the browser can't find natural break
+     opportunities and long Thai product names run off the right margin.
+     line-break: anywhere is the conventional Thai-text wrap rule. */
+  .print-title,
+  .print-meta,
+  .bom-rationale,
+  .bom-room-name,
+  .bom-line-name,
+  .bom-line-reason,
+  .bom-line-meta,
+  .bom-disclaimer,
+  .bom-total-label,
+  .bom-eyebrow {
+    line-break: anywhere;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  /* Drop ALL flex/grid in the BOM for print and use plain document flow.
+     Grid + Thai (no inter-word spaces) was unreliable across browsers and
+     kept clipping the right column. Block-only is bulletproof. Each line
+     becomes three stacked blocks: name → meta line (total · qty · SKU) →
+     reason. The colour swatch is hidden — decorative on screen, ink-waste
+     in print. */
+  .bom-panel {
+    max-width: 100%;
+  }
+
+  .bom-swatch {
+    display: none;
+  }
+
+  .bom-rooms,
+  .bom-room,
+  .bom-line,
+  .bom-line-info,
+  .bom-line-price,
+  .bom-room-header,
+  .bom-total {
+    display: block;
+  }
+
+  .bom-line {
+    padding: 8px 0;
+    border-top: 1px solid #E0E0E0;
+  }
+
+  .bom-line:first-child {
+    border-top: none;
+  }
+
+  .bom-room-name {
+    display: block;
+    font-weight: 700;
+    font-size: 13px;
+    color: #000;
+  }
+
+  .bom-room-area {
+    display: block;
+    font-size: 10px;
+    color: #777;
+    margin-bottom: 4px;
+  }
+
+  .bom-line-name {
+    display: block;
+    font-weight: 600;
+    font-size: 12px;
+    color: #000;
+    margin-bottom: 2px;
+  }
+
+  /* Total · qty · SKU on a single inline run — separator dots between them */
+  .bom-line-total {
+    display: inline;
+    font-weight: 700;
+    font-size: 11px;
+    color: #000;
+  }
+
+  .bom-line-total::after {
+    content: " \00B7 ";
+    color: #999;
+  }
+
+  .bom-line-meta {
+    display: inline;
+    font-size: 11px;
+    color: #555;
+  }
+
+  .bom-line-meta::after {
+    content: " \00B7 ";
+    color: #999;
+  }
+
+  .bom-line-unit {
+    display: inline;
+    font-size: 11px;
+    color: #888;
+  }
+
+  .bom-line-reason {
+    display: block;
+    font-size: 11px;
+    color: #555;
+    font-style: italic;
+    margin-top: 3px;
+  }
+
+  /* Grand total: right-aligned block with a single bold value below the label */
+  .bom-total {
+    margin-top: 16px;
+    padding-top: 12px;
+    border-top: 2px solid #000;
+    text-align: right;
+  }
+
+  .bom-total-label {
+    display: block;
+    font-size: 11px;
+    color: #555;
+    margin-bottom: 4px;
+  }
+
+  .bom-total-value {
+    display: block;
+    font-size: 18px;
+    font-weight: 700;
+    color: #000;
+  }
+
+  /* Page margins handled by the OS print dialog, but a sane default helps */
+  @page {
+    margin: 14mm;
+  }
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   SHARE BANNER + TOAST
+   Banner sits at the top of the result page when opened via a ?share=ID
+   link, telling the visitor they're viewing someone else's design. Toast
+   appears briefly after Share copies the link to the clipboard.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.share-banner {
+  background: var(--tint-bg);
+  color: var(--tint);
+  border-radius: var(--radius-grouped);
+  padding: 10px 16px;
+  font-size: var(--type-subhead-size);
+  line-height: var(--type-subhead-lh);
+  letter-spacing: var(--type-subhead-track);
+  font-weight: 600;
+  margin-bottom: 16px;
+  border: 0.5px solid var(--tint);
+}
+
+.toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%) translateY(0);
+  background: var(--material-thin);
+  border: 0.5px solid var(--separator);
+  border-radius: var(--radius-pill);
+  padding: 12px 22px;
+  font-size: var(--type-subhead-size);
+  font-weight: 500;
+  color: var(--label);
+  backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  box-shadow: var(--shadow-2);
+  z-index: 200;
+  animation: toastEnter 0.3s var(--ease-spring);
+  white-space: nowrap;
+  max-width: calc(100vw - 32px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@keyframes toastEnter {
+  from { opacity: 0; transform: translateX(-50%) translateY(8px); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
    FLOATING OVERLAY (background generation indicator)
    Vibrancy-material toast pinned to the bottom edge.
    ═══════════════════════════════════════════════════════════════════════════ */

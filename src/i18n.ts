@@ -125,7 +125,16 @@ const UI_STRINGS: Record<string, Record<Lang, string>> = {
   'btn.tryAnother': { en: 'Try Another Style', th: 'ลองสไตล์อื่น' },
   'btn.download': { en: 'Download', th: 'ดาวน์โหลด' },
   'btn.downloadAll': { en: 'Download All', th: 'ดาวน์โหลดทั้งหมด' },
+  'btn.saveQuote': { en: 'Save Quote', th: 'บันทึกใบเสนอราคา' },
+  'btn.share': { en: 'Share', th: 'แชร์' },
   'btn.home': { en: 'Home', th: 'หน้าแรก' },
+
+  // ── Share Flow ──
+  'share.copied': { en: 'Link copied to clipboard', th: 'คัดลอกลิงก์แล้ว' },
+  'share.copyFailed': { en: 'Couldn\'t copy. Long-press to copy:', th: 'คัดลอกไม่สำเร็จ กดค้างเพื่อคัดลอก:' },
+  'share.error': { en: 'Couldn\'t create share link. Try again.', th: 'สร้างลิงก์แชร์ไม่สำเร็จ กรุณาลองใหม่' },
+  'share.viewing': { en: 'Viewing a shared design', th: 'กำลังดูดีไซน์ที่แชร์มา' },
+  'share.notFound': { en: 'This shared design has expired or doesn\'t exist.', th: 'ดีไซน์ที่แชร์มาหมดอายุหรือไม่พบแล้ว' },
 
   // ── Quiz ──
   // {current} and {total} are replaced at runtime (e.g., "Question 3 of 6")
@@ -157,6 +166,11 @@ const UI_STRINGS: Record<string, Record<Lang, string>> = {
   'bom.qty.can': { en: '{qty} × 9L · ฿{price}', th: '{qty} กระป๋อง 9L · ฿{price}' },
   'loading.recommending': { en: 'Designing your renovation…', th: 'กำลังออกแบบรายการรีโนเวต...' },
   'loading.recommending.sub': { en: 'Picking SCG products that fit your style', th: 'กำลังเลือกสินค้า SCG ให้ตรงกับสไตล์ของคุณ' },
+
+  // ── Save-Quote print view ──
+  // Used only on the print-friendly version of the result page.
+  'print.title': { en: 'Renovation Quote — {style}', th: 'ใบเสนอราคารีโนเวต — {style}' },
+  'print.meta': { en: '{date} · {rooms} rooms', th: '{date} · {rooms} ห้อง' },
 
   // ── Custom Style Card ──
   'custom.label': { en: 'Your Custom Style', th: 'สไตล์เฉพาะของคุณ' },
