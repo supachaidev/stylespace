@@ -215,14 +215,25 @@ function renderQuizStep(): void {
   const q = questions[quizStep];
   const total = questions.length;
 
+  // Defensive reset — if a previous fade-out left inline opacity:0 (e.g.
+  // because the section was swapped mid-transition), clear it so the new
+  // question's content renders at full opacity.
+  const questionEl = document.getElementById('quiz-question')!;
+  const optionsEl = document.getElementById('quiz-options')!;
+  questionEl.style.opacity = '';
+  questionEl.style.transform = '';
+  optionsEl.style.opacity = '';
+  optionsEl.style.transform = '';
+
   // Update the step indicator (e.g., "Question 3 of 6")
   document.getElementById('quiz-step')!.textContent =
     t('quiz.step').replace('{current}', String(quizStep + 1)).replace('{total}', String(total));
-  document.getElementById('quiz-question')!.textContent = q.question;
+  questionEl.textContent = q.question;
 
-  // Animate the progress bar to reflect current position
+  // Animate the progress bar to reflect current position. scaleX 0..1 maps
+  // to 0..100% — see the .quiz-progress-bar rule for why this isn't `width`.
   const bar = document.getElementById('quiz-progress-bar')!;
-  bar.style.width = `${((quizStep) / total) * 100}%`;
+  bar.style.transform = `scaleX(${quizStep / total})`;
 
   // Build option buttons dynamically
   const container = document.getElementById('quiz-options')!;
@@ -243,16 +254,27 @@ function renderQuizStep(): void {
       container.querySelectorAll('.quiz-option').forEach(b => b.classList.remove('selected'));
       btn.classList.add('selected');
 
-      // Short delay for visual feedback, then advance
-      setTimeout(() => {
+      // Two-stage advance:
+      //   1. Hold for 250ms so the .checkPop spring (220ms) completes.
+      //   2. Fade the question + options out over 140ms, then swap.
+      // Total path is ~390ms — feels like a transition, not a snap.
+      window.setTimeout(() => {
         quizAnswers[quizStep] = idx;
-        quizStep++;
 
-        if (quizStep >= questions.length) {
-          finishQuiz();  // All questions answered → calculate results
-        } else {
-          renderQuizStep();  // Show next question
-        }
+        const questionEl = document.getElementById('quiz-question')!;
+        questionEl.style.opacity = '0';
+        questionEl.style.transform = 'translateY(-4px)';
+        container.style.opacity = '0';
+        container.style.transform = 'translateY(-4px)';
+
+        window.setTimeout(() => {
+          quizStep++;
+          if (quizStep >= questions.length) {
+            finishQuiz();  // All questions answered → calculate results
+          } else {
+            renderQuizStep();  // renderQuizStep clears the inline styles
+          }
+        }, 140);
       }, 250);
     });
     container.appendChild(btn);
@@ -271,7 +293,7 @@ function renderQuizStep(): void {
 async function finishQuiz(): Promise<void> {
   // Fill progress bar to 100% for visual completeness
   const bar = document.getElementById('quiz-progress-bar')!;
-  bar.style.width = '100%';
+  bar.style.transform = 'scaleX(1)';
 
   // Calculate which styles match the user's answers
   quizResult = calculateResult(quizAnswers);
@@ -343,6 +365,7 @@ async function generateFirstRender(style: StylePreset): Promise<void> {
     const bom = await getBomForStyle(style);
 
     updateLoadingText(`${style.label}`, t('loading.generating'));
+    setLoadingSubtextRotation(getRenderTips(t('loading.generating')));
 
     // Resize down to 512px for the Gemini call (same as the old Pillow path).
     const resized = await resizeImageFile(uploadedFile, GENERATE_MAX_SIZE);
@@ -496,6 +519,7 @@ async function selectStyle(style: StylePreset): Promise<void> {
   try {
     const bom = await getBomForStyle(style);
     updateLoadingText(`${style.label}`, t('loading.restyling'));
+    setLoadingSubtextRotation(getRenderTips(t('loading.restyling')));
 
     const form = new FormData();
     form.append('base_image', baseRender);
@@ -548,8 +572,18 @@ function showResultRaw(renderUrl: string, style: StylePreset, bom: RecommendResp
   document.getElementById('regenerate-btn')!.classList.remove('hidden');
   document.getElementById('try-another-style-btn')!.classList.remove('hidden');
 
-  // Display the render image and style info
-  (document.getElementById('render-image') as HTMLImageElement).src = renderUrl;
+  // Display the render image and style info. Reset the .loaded class so
+  // the fade-up plays again — same <img> element gets reused across
+  // navigations, so without the reset the second result snaps in instantly.
+  const img = document.getElementById('render-image') as HTMLImageElement;
+  img.classList.remove('loaded');
+  img.onload = () => img.classList.add('loaded');
+  img.src = renderUrl;
+  // Same URL set twice (back-nav restoring a cached render) won't refire
+  // 'load', so kick the class on next frame if the decode is already done.
+  if (img.complete && img.naturalWidth > 0) {
+    requestAnimationFrame(() => img.classList.add('loaded'));
+  }
   document.getElementById('result-style-name')!.textContent = style.label;
   document.getElementById('result-style-desc')!.textContent = style.description;
 
@@ -565,6 +599,54 @@ function showResultRaw(renderUrl: string, style: StylePreset, bom: RecommendResp
 
 const THB = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 });
 
+// Stagger constants for the BOM cascade. Tuned so a typical 4-room BOM
+// (~12 elements total) finishes its reveal in ~500ms, capping further so
+// long BOMs don't accumulate dead time at the tail.
+const BOM_STAGGER_BASE_MS = 60;
+const BOM_STAGGER_STEP_MS = 28;
+const BOM_STAGGER_CAP = 16;
+
+// Tracks the in-flight count-up rAF so a second render (e.g. regenerate or
+// back-nav) cancels the previous tween instead of letting two compete.
+let bomCountUpFrame: number | null = null;
+
+/**
+ * Tween the total value from 0 → final over 600ms with an ease-out-cubic
+ * curve. Runs in parallel with the BOM cascade so the eye lands on a
+ * number that's still settling — the demo's "reveal" beat for SCG.
+ */
+function animateBomTotal(el: HTMLElement, value: number): void {
+  if (bomCountUpFrame !== null) {
+    cancelAnimationFrame(bomCountUpFrame);
+    bomCountUpFrame = null;
+  }
+
+  // Reduced motion: show the final value immediately, no tween.
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    el.textContent = `฿${THB.format(value)}`;
+    return;
+  }
+
+  // Sync initial paint to ฿0 so a stale value from a prior render doesn't
+  // flash for one frame before the rAF tween takes over.
+  el.textContent = `฿${THB.format(0)}`;
+
+  const start = performance.now();
+  const duration = 600;
+
+  const step = (now: number) => {
+    const t = Math.min(1, (now - start) / duration);
+    const eased = 1 - Math.pow(1 - t, 3);
+    el.textContent = `฿${THB.format(Math.round(value * eased))}`;
+    if (t < 1) {
+      bomCountUpFrame = requestAnimationFrame(step);
+    } else {
+      bomCountUpFrame = null;
+    }
+  };
+  bomCountUpFrame = requestAnimationFrame(step);
+}
+
 function formatLineMeta(line: BomLine): string {
   const qtyStr = line.unit === 'piece'
     ? String(line.quantity)
@@ -574,14 +656,19 @@ function formatLineMeta(line: BomLine): string {
   return t(key).replace('{qty}', qtyStr).replace('{price}', priceStr);
 }
 
-function renderBomPanel(bom: RecommendResponse | null): void {
+function renderBomPanel(bom: RecommendResponse | null, animate = true): void {
   const eyebrow = document.getElementById('bom-eyebrow');
   const rationale = document.getElementById('bom-rationale');
   const roomsEl = document.getElementById('bom-rooms');
   const totalLabel = document.getElementById('bom-total-label');
   const totalValue = document.getElementById('bom-total');
   const disclaimer = document.getElementById('bom-disclaimer');
+  const panel = document.getElementById('bom-panel');
   if (!eyebrow || !rationale || !roomsEl || !totalLabel || !totalValue || !disclaimer) return;
+
+  // Gate the cascade on a parent class so language re-renders don't re-fire
+  // the entrance animations (would feel like the BOM re-loaded every toggle).
+  if (panel) panel.classList.toggle('bom-animate', animate);
 
   const lang = getLang();
   eyebrow.textContent = t('bom.eyebrow');
@@ -607,6 +694,17 @@ function renderBomPanel(bom: RecommendResponse | null): void {
   }
 
   roomsEl.innerHTML = '';
+
+  // Single global cascade index across rooms + lines so the reveal reads
+  // as one continuous wave rather than per-room batches snapping in.
+  let cascadeIdx = 0;
+  const setStagger = (el: HTMLElement) => {
+    if (!animate) return;
+    const i = Math.min(cascadeIdx, BOM_STAGGER_CAP);
+    el.style.animationDelay = `${BOM_STAGGER_BASE_MS + i * BOM_STAGGER_STEP_MS}ms`;
+    cascadeIdx++;
+  };
+
   for (const room of rooms) {
     const lines = linesByRoom.get(room.id);
     if (!lines || lines.length === 0) continue;
@@ -614,6 +712,7 @@ function renderBomPanel(bom: RecommendResponse | null): void {
     const section = document.createElement('div');
     section.className = 'bom-room';
     section.setAttribute('data-room-id', room.id);
+    setStagger(section);
 
     const header = document.createElement('div');
     header.className = 'bom-room-header';
@@ -635,6 +734,7 @@ function renderBomPanel(bom: RecommendResponse | null): void {
     for (const line of lines) {
       const row = document.createElement('div');
       row.className = 'bom-line';
+      setStagger(row);
 
       const swatch = document.createElement('span');
       swatch.className = 'bom-swatch';
@@ -684,7 +784,11 @@ function renderBomPanel(bom: RecommendResponse | null): void {
     roomsEl.appendChild(section);
   }
 
-  totalValue.textContent = `฿${THB.format(bom.grand_total_thb)}`;
+  if (animate) {
+    animateBomTotal(totalValue, bom.grand_total_thb);
+  } else {
+    totalValue.textContent = `฿${THB.format(bom.grand_total_thb)}`;
+  }
 }
 
 
@@ -699,6 +803,7 @@ async function regenerateRender(style: StylePreset): Promise<void> {
 
   showSectionRaw('loading');
   updateLoadingText(`${style.label}`, t('loading.regenerating'));
+  setLoadingSubtextRotation(getRenderTips(t('loading.regenerating')));
 
   try {
     // The BOM is deterministic per (style, plan), so we reuse the cached
@@ -1001,34 +1106,153 @@ function updateDownloadAllVisibility(): void {
 
 // ─── UI Helpers ─────────────────────────────────────────────────────────────
 
+// Cycles the loading subtext through a list of "render tip" messages every
+// ~5s so the long Gemini call (~25–30s) communicates progress instead of
+// freezing on a single line of text. Cleared on leaving the loading section.
+let loadingSubtextRotationTimer: number | null = null;
+
+function setLoadingSubtextRotation(messages: string[], intervalMs = 5000): void {
+  clearLoadingSubtextRotation();
+  if (messages.length <= 1) return;
+
+  let idx = 0;
+  loadingSubtextRotationTimer = window.setInterval(() => {
+    idx = (idx + 1) % messages.length;
+    const subEl = document.getElementById('loading-subtext');
+    if (!subEl) return;
+
+    // Reuse the .loading-subtext opacity transition (140ms).
+    subEl.style.opacity = '0';
+    window.setTimeout(() => {
+      subEl.textContent = messages[idx];
+      subEl.style.opacity = '';
+    }, 140);
+  }, intervalMs);
+}
+
+function clearLoadingSubtextRotation(): void {
+  if (loadingSubtextRotationTimer !== null) {
+    clearInterval(loadingSubtextRotationTimer);
+    loadingSubtextRotationTimer = null;
+  }
+}
+
+/** Build the tip-rotation list for the long Gemini render phases. */
+function getRenderTips(initialSubtext: string): string[] {
+  return [
+    initialSubtext,
+    t('loading.tip1'),
+    t('loading.tip2'),
+    t('loading.tip3'),
+    t('loading.tip4'),
+  ];
+}
+
+// Tracks whether the loading section's title has been set this visit. The
+// first set after entering loading is instant (don't double-animate with
+// the section's contentEnter); subsequent updates cross-fade so phase
+// transitions like "analyzing → recommending → generating" feel like
+// progression instead of a snap-swap.
+let loadingTitleInitialized = false;
+
 /** Update the loading screen's title and subtitle text */
 function updateLoadingText(title: string, subtitle: string): void {
-  document.getElementById('loading-text')!.textContent = title;
-  document.getElementById('loading-subtext')!.textContent = subtitle;
+  const titleEl = document.getElementById('loading-text')!;
+  const subEl = document.getElementById('loading-subtext')!;
+
+  // First call this visit, or no actual change → set instantly.
+  if (!loadingTitleInitialized || titleEl.textContent === title) {
+    titleEl.textContent = title;
+    subEl.textContent = subtitle;
+    loadingTitleInitialized = true;
+    return;
+  }
+
+  // Cross-fade: nudge the title up + fade out, swap text, fade back in.
+  titleEl.style.opacity = '0';
+  titleEl.style.transform = 'translateY(-3px)';
+  subEl.style.opacity = '0';
+
+  window.setTimeout(() => {
+    titleEl.textContent = title;
+    subEl.textContent = subtitle;
+    titleEl.style.opacity = '';
+    titleEl.style.transform = '';
+    subEl.style.opacity = '';
+  }, 140);
 }
 
 /**
  * Show a specific section and hide all others.
  * Also toggles the home button visibility (hidden on upload page).
  */
+// Tracks an in-flight section exit so a rapid follow-up navigation can cancel
+// it before the new section appears, preventing the old section from lingering
+// on screen during the new section's contentEnter.
+let pendingExit: { el: HTMLElement; handler: (e: AnimationEvent) => void } | null = null;
+
 function showSectionRaw(section: 'upload' | 'loading' | 'quiz' | 'styles' | 'result' | 'error'): void {
   currentView = section;
 
-  // Hide all sections first
-  ['upload-section', 'loading-section', 'quiz-section', 'styles-section', 'result-section', 'error-section'].forEach(id => {
-    document.getElementById(id)!.classList.add('hidden');
-  });
-
-  // Show the target section
-  document.getElementById(`${section}-section`)!.classList.remove('hidden');
+  const sectionIds = ['upload-section', 'loading-section', 'quiz-section', 'styles-section', 'result-section', 'error-section'];
+  const target = document.getElementById(`${section}-section`)!;
 
   // Show the home button on all pages except the upload page
   const homeBtn = document.getElementById('home-btn')!;
-  if (section === 'upload') {
-    homeBtn.classList.add('hidden');
+  homeBtn.classList.toggle('hidden', section === 'upload');
+
+  // Reset loading helpers on entering or leaving the loading section so the
+  // first updateLoadingText doesn't cross-fade with stale text and any
+  // subtext rotation from the previous visit is stopped.
+  if (section !== 'loading') {
+    loadingTitleInitialized = false;
+    clearLoadingSubtextRotation();
   } else {
-    homeBtn.classList.remove('hidden');
+    loadingTitleInitialized = false;
   }
+
+  // Cancel any in-flight exit — its handler would otherwise fire later and
+  // toggle classes on stale references.
+  if (pendingExit) {
+    pendingExit.el.removeEventListener('animationend', pendingExit.handler);
+    pendingExit.el.classList.remove('leaving');
+    pendingExit.el.classList.add('hidden');
+    pendingExit = null;
+  }
+
+  // Find the section currently visible (other than target) — that's what
+  // should animate out. At most one matches in steady state.
+  const sections = sectionIds.map(id => document.getElementById(id)!);
+  const outgoing = sections.find(el => el !== target && !el.classList.contains('hidden')) ?? null;
+
+  // Force-hide everything else outright (defensive — keeps the DOM clean if
+  // a previous transition was interrupted in an odd state).
+  sections.forEach(el => {
+    if (el === target || el === outgoing) return;
+    el.classList.add('hidden');
+    el.classList.remove('leaving');
+  });
+
+  // No outgoing section (initial paint, or already on target) — just reveal
+  // target and let its contentEnter animation play.
+  if (!outgoing) {
+    target.classList.remove('hidden');
+    return;
+  }
+
+  // Cross-fade: animate outgoing out, then reveal target. animationend
+  // bubbles, so guard on event.target and animationName.
+  outgoing.classList.add('leaving');
+  const handler = (e: AnimationEvent) => {
+    if (e.target !== outgoing || e.animationName !== 'sectionExit') return;
+    outgoing.removeEventListener('animationend', handler);
+    outgoing.classList.add('hidden');
+    outgoing.classList.remove('leaving');
+    target.classList.remove('hidden');
+    pendingExit = null;
+  };
+  pendingExit = { el: outgoing, handler };
+  outgoing.addEventListener('animationend', handler);
 }
 
 /** Show the error section with a specific message */
@@ -1125,7 +1349,8 @@ function refreshCurrentView(): void {
     currentStyle = freshStyle;
     document.getElementById('result-style-name')!.textContent = freshStyle.label;
     document.getElementById('result-style-desc')!.textContent = freshStyle.description;
-    renderBomPanel(currentBom);
+    // animate=false: a language toggle shouldn't replay the cascade or count-up.
+    renderBomPanel(currentBom, false);
   }
 }
 

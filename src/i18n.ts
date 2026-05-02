@@ -108,6 +108,13 @@ const UI_STRINGS: Record<string, Record<Lang, string>> = {
   'loading.restyling': { en: 'Restyling the base render', th: 'กำลังปรับสไตล์ใหม่' },
   'loading.regenerating': { en: 'This may take a moment', th: 'รอสักครู่นะ' },
 
+  // Rotated subtext shown during the long Gemini render (~25–30s) so the
+  // wait reads as ongoing work rather than a held breath.
+  'loading.tip1': { en: 'Composing the camera angle and lighting', th: 'กำลังจัดมุมกล้องและแสง' },
+  'loading.tip2': { en: 'Placing furniture that fits your layout', th: 'กำลังจัดวางเฟอร์นิเจอร์ให้เข้ากับผัง' },
+  'loading.tip3': { en: 'Refining materials and textures', th: 'กำลังปรับวัสดุและพื้นผิว' },
+  'loading.tip4': { en: 'Almost there — finalizing details', th: 'ใกล้เสร็จแล้ว กำลังเก็บรายละเอียด' },
+
   // ── Error Messages ──
   'error.upload': { en: 'Please upload an image file (JPG, PNG, etc.)', th: 'กรุณาอัปโหลดไฟล์รูปภาพ (JPG, PNG)' },
   'error.server': { en: 'Could not reach the server. Is the backend running?', th: 'เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ กรุณาลองใหม่' },

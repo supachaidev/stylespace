@@ -423,6 +423,19 @@ main > section {
   to   { opacity: 1; transform: translateY(0)    scale(1); }
 }
 
+/* Section exit — paired with the JS in showSectionRaw, which adds .leaving,
+   waits for animationend, then hides the section and reveals the new one.
+   Faster than the entrance per the "exit can be ~20% faster" guideline. */
+main > section.leaving {
+  animation: sectionExit 140ms var(--ease-snappy) both;
+  pointer-events: none;
+}
+
+@keyframes sectionExit {
+  from { opacity: 1; transform: translateY(0)     scale(1); }
+  to   { opacity: 0; transform: translateY(-4px)  scale(0.99); }
+}
+
 
 /* ═══════════════════════════════════════════════════════════════════════════
    UPLOAD — Files-app-style empty state inside a rounded surface
@@ -458,7 +471,7 @@ main > section {
 }
 
 #upload-zone:active {
-  transform: scale(0.995);
+  transform: scale(0.985);
   box-shadow:
     inset 0 0 0 0.5px var(--separator),
     var(--shadow-1);
@@ -466,11 +479,13 @@ main > section {
 
 #upload-zone.drag-over {
   background-color: var(--tint-bg);
+  /* Two properties (color + ring) instead of three — the previous translateY
+     stacking with bg + shadow read as a busy multi-property change. The
+     halo ring alone is plenty of "yes, drop here" affordance. */
   box-shadow:
     inset 0 0 0 1.5px var(--tint),
     0 0 0 6px var(--tint-bg-soft),
     var(--shadow-2);
-  transform: translateY(-2px);
 }
 
 .upload-icon-wrapper {
@@ -507,18 +522,22 @@ main > section {
   border: 1.5px solid var(--tint);
   opacity: 0;
   transform: scale(0.96);
-  /* No infinite loop in the resting state — perpetual motion on a screen
-     users return to constantly violates the "100+ daily" rule. The ring
-     only pulses while the user is actively engaging the drop zone. */
+  transition: opacity 220ms var(--ease-snappy),
+              transform 220ms var(--ease-snappy);
 }
 
+/* Drag-over is the only state where users genuinely need a continuous
+   "drop here" signal — keep the infinite pulse there. Hover gets a single
+   one-shot bloom: the ring eases out and holds, no perpetual motion on a
+   surface users return to constantly. */
 #upload-zone.drag-over .upload-icon-ring {
   animation: pulseRing 1.6s var(--ease-snappy) infinite;
 }
 
 @media (hover: hover) and (pointer: fine) {
   #upload-zone:hover .upload-icon-ring {
-    animation: pulseRing 1.8s var(--ease-snappy) infinite;
+    opacity: 0.45;
+    transform: scale(1.04);
   }
 }
 
@@ -589,9 +608,13 @@ main > section {
 
 .ai-loader-bar {
   width: 4px;
-  height: 12px;
+  /* Sized at the max so scaleY() shrinks down to the rest position. Animating
+     `height` on 4 bars at 60Hz triggers layout/paint every frame; transform
+     stays on the GPU and frees the main thread for the rAF count-up etc. */
+  height: 36px;
   border-radius: 4px;
   background: var(--tint);
+  transform-origin: center;
   animation: aiPulse 1.2s ease-in-out infinite;
 }
 
@@ -601,8 +624,8 @@ main > section {
 .ai-loader-bar:nth-child(4) { animation-delay: 0.45s; }
 
 @keyframes aiPulse {
-  0%, 100% { height: 12px; opacity: 0.4; }
-  50%      { height: 36px; opacity: 1; }
+  0%, 100% { transform: scaleY(0.333); opacity: 0.4; }
+  50%      { transform: scaleY(1);     opacity: 1; }
 }
 
 /* Reused by .thumb-spinner and .overlay-content .spinner */
@@ -617,6 +640,10 @@ main > section {
   font-weight: 600;
   color: var(--label);
   margin-bottom: 4px;
+  /* Cross-fade between phases (analyzing → recommending → generating).
+     main.ts toggles inline opacity to fade out, swap text, fade in. */
+  transition: opacity 140ms var(--ease-snappy),
+              transform 140ms var(--ease-snappy);
 }
 
 .loading-subtext {
@@ -624,6 +651,7 @@ main > section {
   line-height: var(--type-subhead-lh);
   letter-spacing: var(--type-subhead-track);
   color: var(--label-2);
+  transition: opacity 140ms var(--ease-snappy);
 }
 
 
@@ -794,13 +822,18 @@ main > section {
 }
 
 .quiz-progress-bar {
+  /* Sized to the full track and scaled along X — animating `width` triggers
+     layout every frame; `transform: scaleX` stays on the GPU. The fill is
+     anchored at the left edge so it grows rightward like a real fill. */
   height: 100%;
+  width: 100%;
   background: var(--tint);
   border-radius: 2px;
+  transform: scaleX(0);
+  transform-origin: left center;
   /* Movement on screen → ease-in-out feel; kept brisk so the bar arrives
      before the next question's options finish staggering in. */
-  transition: width 380ms var(--ease-smooth);
-  width: 0%;
+  transition: transform 380ms var(--ease-smooth);
 }
 
 .quiz-step {
@@ -811,6 +844,9 @@ main > section {
   color: var(--tint);
   text-transform: uppercase;
   margin-bottom: 8px;
+  /* Reserve a line so the question below doesn't shift up if the step text
+     is briefly empty (state restore race, language hot-swap mid-render). */
+  min-height: var(--type-footnote-lh);
 }
 
 .quiz-question {
@@ -820,6 +856,10 @@ main > section {
   font-weight: 700;
   color: var(--label);
   margin-bottom: 28px;
+  /* Cross-fade between questions — main.ts toggles inline opacity/transform
+     to fade out, swap text via renderQuizStep, fade back in. */
+  transition: opacity 140ms var(--ease-snappy),
+              transform 140ms var(--ease-snappy);
 }
 
 /* The grouped list container — single rounded surface holding all options
@@ -831,6 +871,8 @@ main > section {
   border-radius: var(--radius-grouped);
   overflow: hidden;
   box-shadow: var(--shadow-1);
+  transition: opacity 140ms var(--ease-snappy),
+              transform 140ms var(--ease-snappy);
 }
 
 .quiz-option {
@@ -976,6 +1018,10 @@ main > section {
   overflow: hidden;
   cursor: pointer;
   border: 0.5px solid var(--separator);
+  /* position:relative anchors the ::after selection ring to the card itself.
+     Inset shadows aren't clipped by the card's overflow:hidden, so the ring
+     can live inside the rounded corners without extra wrappers. */
+  position: relative;
   transition: transform 200ms var(--ease-snappy),
               box-shadow var(--duration) var(--ease-smooth),
               border-color var(--duration) var(--ease-smooth);
@@ -984,6 +1030,30 @@ main > section {
   /* Cards rise into the grid with a per-index delay set in main.ts —
      reads as a real surface arriving rather than a flat snap-in. */
   animation: cardEnter 320ms var(--ease-snappy) both;
+}
+
+/* Selection ring — owned by ::after instead of the card's own box-shadow so
+   it can pop in crisply (snappy ease over 180ms) independent of the card's
+   other transitions, and so the small scale-in feels like a confirm rather
+   than the previous mushy box-shadow fade. */
+.style-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: inset 0 0 0 0 transparent;
+  opacity: 0;
+  transform: scale(0.97);
+  pointer-events: none;
+  transition: box-shadow 180ms var(--ease-snappy),
+              opacity 180ms var(--ease-snappy),
+              transform 180ms var(--ease-snappy);
+}
+
+.style-card.selected::after {
+  box-shadow: inset 0 0 0 2px var(--tint);
+  opacity: 1;
+  transform: scale(1);
 }
 
 @keyframes cardEnter {
@@ -1004,7 +1074,9 @@ main > section {
 
 .style-card.selected {
   border-color: var(--tint);
-  box-shadow: 0 0 0 2px var(--tint), var(--shadow-1);
+  /* Ring delegated to ::after; keep just the elevation so the selected
+     card still reads as lifted off the grid. */
+  box-shadow: var(--shadow-1);
 }
 
 .style-thumbnail {
@@ -1015,6 +1087,16 @@ main > section {
   justify-content: center;
   position: relative;
   border-radius: 0;
+  /* Scales subtly on parent card hover — Photos.app feel that masks the
+     thumbnail being a flat gradient or stale render. Card's overflow:hidden
+     clips the scaled thumbnail to the rounded corners. */
+  transition: transform 320ms var(--ease-snappy);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .style-card:hover .style-thumbnail {
+    transform: scale(1.04);
+  }
 }
 
 .style-thumbnail.generating {
@@ -1091,6 +1173,15 @@ main > section {
   background: var(--surface);
   position: relative;
   overflow: hidden;
+  /* Hero entrance — overrides .style-card's cardEnter with a longer,
+     spring-eased curve so the personalized recommendation reads as a
+     feature, not just another tile in the grid. */
+  animation: customCardEnter 420ms var(--ease-spring) both;
+}
+
+@keyframes customCardEnter {
+  from { opacity: 0; transform: translateY(14px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0)    scale(1); }
 }
 
 .custom-style-card::before {
@@ -1177,6 +1268,19 @@ main > section {
   border: 0.5px solid var(--separator);
   box-shadow: var(--shadow-2);
   background: var(--surface);
+  /* Fade-up on first decode. main.ts adds .loaded once the data URL is
+     ready, masking the brief decode hitch on large PNGs and giving the
+     reveal a measured beat instead of a hard pop. */
+  opacity: 0;
+  transform: scale(1.02);
+  transform-origin: center;
+  transition: opacity 360ms var(--ease-snappy),
+              transform 360ms var(--ease-snappy);
+}
+
+.render-container img.loaded {
+  opacity: 1;
+  transform: scale(1);
 }
 
 
@@ -1371,6 +1475,20 @@ main > section {
   padding: 32px 16px;
   color: var(--label-2);
   font-size: var(--type-subhead-size);
+}
+
+/* Cascading entrance — main.ts sets per-element animation-delay so rooms
+   and lines reveal in DOM order. Gated by .bom-animate on the panel so
+   language changes don't re-fire the cascade (we don't want prices to
+   pop in again just because the user toggled TH/EN). */
+.bom-panel.bom-animate .bom-room,
+.bom-panel.bom-animate .bom-line {
+  animation: bomStagger 320ms var(--ease-snappy) both;
+}
+
+@keyframes bomStagger {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
 
