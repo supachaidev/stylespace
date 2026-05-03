@@ -634,9 +634,12 @@ main > section.leaving {
 }
 
 .loading-text {
-  font-size: var(--type-headline-size);
-  line-height: var(--type-headline-lh);
-  letter-spacing: var(--type-headline-track);
+  /* Title 3 instead of Headline — the loading card has plenty of vertical
+     room and a status message at body-emphasis size doesn't read as a
+     title. Title 3 gives it the presence a mid-flow status screen needs. */
+  font-size: var(--type-title-3-size);
+  line-height: var(--type-title-3-lh);
+  letter-spacing: var(--type-title-3-track);
   font-weight: 600;
   color: var(--label);
   margin-bottom: 4px;
@@ -839,7 +842,10 @@ main > section.leaving {
 .quiz-step {
   font-size: var(--type-footnote-size);
   line-height: var(--type-footnote-lh);
-  letter-spacing: var(--type-footnote-track);
+  /* Uppercase needs positive tracking to keep the wider, uniform caps from
+     jamming. The footnote token is negative for sentence-case readability,
+     so override here — same pattern as .bom-eyebrow. */
+  letter-spacing: 0.06em;
   font-weight: 600;
   color: var(--tint);
   text-transform: uppercase;
@@ -853,7 +859,10 @@ main > section.leaving {
   font-size: var(--type-title-1-size);
   line-height: var(--type-title-1-lh);
   letter-spacing: var(--type-title-1-track);
-  font-weight: 700;
+  /* Apple HIG reserves 700 for Large Title; Title 1/2/3 use 400 or 600.
+     The size + tint step indicator above already make this the focal
+     point — heavier weight read as shouty rather than authoritative. */
+  font-weight: 600;
   color: var(--label);
   margin-bottom: 28px;
   /* Cross-fade between questions — main.ts toggles inline opacity/transform
@@ -1150,7 +1159,9 @@ main > section.leaving {
   display: inline-flex;
   align-items: center;
   font-size: var(--type-caption-size);
-  line-height: 1;
+  /* line-height: 1 was clipping Thai diacritics (เ้, ิ, ์) above and below
+     the baseline. 1.2 gives the marks room without enlarging the pill. */
+  line-height: 1.2;
   font-weight: 600;
   letter-spacing: 0;
   padding: 4px 9px;
@@ -2028,11 +2039,23 @@ footer {
   .quiz-question {
     font-size: var(--type-title-2-size);
     line-height: var(--type-title-2-lh);
+    letter-spacing: var(--type-title-2-track);
   }
 
   .upload-text {
     font-size: var(--type-title-3-size);
     line-height: var(--type-title-3-lh);
+    letter-spacing: var(--type-title-3-track);
+  }
+
+  /* Section headers on phones — Large Title (34px) competes with the hero
+     above and overflows narrow screens. Drop to Title 1 to restore the
+     hero/section size ratio. */
+  .styles-header h2,
+  .result-header h2 {
+    font-size: var(--type-title-1-size);
+    line-height: var(--type-title-1-lh);
+    letter-spacing: var(--type-title-1-track);
   }
 
   #upload-zone {
