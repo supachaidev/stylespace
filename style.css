@@ -441,6 +441,62 @@ main > section.leaving {
    UPLOAD — Files-app-style empty state inside a rounded surface
    ═══════════════════════════════════════════════════════════════════════════ */
 
+/* iOS-style segmented control for picking input mode (Upload vs Draw).
+   The active option uses the surface tone; inactive sits flat on the
+   container fill — same look as iOS UISegmentedControl. */
+.mode-switch {
+  display: flex;
+  background: var(--fill-3);
+  border-radius: var(--radius-control);
+  padding: 3px;
+  margin: 0 auto 16px;
+  gap: 2px;
+  width: fit-content;
+  justify-content: center;
+}
+
+.mode-switch-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-family: var(--font-system);
+  font-size: var(--type-subhead-size);
+  font-weight: 600;
+  letter-spacing: var(--type-subhead-track);
+  color: var(--label-2);
+  padding: 7px 16px;
+  border-radius: calc(var(--radius-control) - 3px);
+  transition: background var(--duration) var(--ease-smooth),
+              color var(--duration) var(--ease-smooth),
+              transform 120ms var(--ease-snappy);
+  min-width: 96px;
+  justify-content: center;
+}
+
+.mode-switch-option:hover {
+  color: var(--label);
+}
+
+.mode-switch-option:active {
+  transform: scale(0.97);
+}
+
+.mode-switch-option.active {
+  background: var(--surface);
+  color: var(--label);
+  box-shadow: var(--shadow-1);
+}
+
+.mode-switch-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+
 #upload-zone {
   position: relative;
   height: 360px;
@@ -569,6 +625,146 @@ main > section.leaving {
   letter-spacing: var(--type-subhead-track);
   color: var(--label-2);
   font-weight: 400;
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   DRAW — Freehand floor-plan canvas with a small Notes-app-style toolbar
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+#draw-zone {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  border-radius: var(--radius-card);
+  background: var(--surface);
+  padding: 14px;
+  box-shadow:
+    inset 0 0 0 0.5px var(--separator),
+    var(--shadow-1);
+}
+
+.draw-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.draw-tools {
+  display: flex;
+  background: var(--fill-3);
+  border-radius: var(--radius-control);
+  padding: 3px;
+  gap: 2px;
+}
+
+.draw-tool {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-family: var(--font-system);
+  font-size: var(--type-subhead-size);
+  font-weight: 600;
+  letter-spacing: var(--type-subhead-track);
+  color: var(--label-2);
+  padding: 7px 14px;
+  border-radius: calc(var(--radius-control) - 3px);
+  transition: background var(--duration) var(--ease-smooth),
+              color var(--duration) var(--ease-smooth),
+              transform 120ms var(--ease-snappy);
+}
+
+.draw-tool:hover {
+  color: var(--label);
+}
+
+.draw-tool:active {
+  transform: scale(0.97);
+}
+
+.draw-tool.active {
+  background: var(--surface);
+  color: var(--tint);
+  box-shadow: var(--shadow-1);
+}
+
+.draw-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.draw-actions .btn-secondary[disabled] {
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+/* The canvas wrapper enforces the floor-plan aspect ratio and frames the
+   drawing surface with the same hairline used throughout the app. */
+.draw-canvas-wrap {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  border-radius: var(--radius-image);
+  background: #FFFFFF;
+  overflow: hidden;
+  box-shadow: inset 0 0 0 0.5px var(--separator);
+  /* Subtle 20px grid like graph paper — helps users sketch straighter walls
+     without dominating the canvas. */
+  background-image:
+    linear-gradient(to right, rgba(0, 0, 0, 0.06) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(0, 0, 0, 0.06) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+#draw-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  cursor: crosshair;
+  /* Ensure the canvas sits above the grid backdrop. The canvas itself
+     paints white over the grid as the user draws (via redraw fillRect),
+     so the grid only shows through where the bitmap is transparent.
+     We use a semi-transparent white fill in JS so the grid stays visible. */
+}
+
+/* Centered hint shown only while the canvas is empty. It's purely a label
+   over the grid; once a stroke lands, .has-content hides it. */
+.draw-hint {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  color: rgba(60, 60, 67, 0.45);
+  font-size: var(--type-subhead-size);
+  letter-spacing: var(--type-subhead-track);
+  font-weight: 500;
+  transition: opacity 200ms var(--ease-snappy);
+}
+
+#draw-zone.has-content .draw-hint {
+  opacity: 0;
+}
+
+/* Eraser tool gets a fatter circle cursor so users see its reach */
+#draw-zone.tool-eraser #draw-canvas {
+  cursor: cell;
+}
+
+.draw-submit-row {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.draw-submit-row .btn-primary[disabled] {
+  opacity: 0.45;
+  pointer-events: none;
 }
 
 

@@ -98,6 +98,17 @@ const UI_STRINGS: Record<string, Record<Lang, string>> = {
 
   // ── Upload Section ──
   'upload.title': { en: 'Drop your floor plan here', th: 'วางแปลนห้องของคุณที่นี่' },
+  // ── Mode Switch (Upload vs Draw) ──
+  'mode.upload': { en: 'Upload', th: 'อัปโหลด' },
+  'mode.draw': { en: 'Draw', th: 'วาดเอง' },
+
+  // ── Draw Section ──
+  'draw.hint': { en: 'Sketch your floor plan — rooms, walls, doors', th: 'วาดแปลนห้อง — ห้อง ผนัง ประตู' },
+  'draw.tool.pen': { en: 'Pen', th: 'ปากกา' },
+  'draw.tool.eraser': { en: 'Eraser', th: 'ยางลบ' },
+  'draw.undo': { en: 'Undo', th: 'ย้อน' },
+  'draw.clear': { en: 'Clear', th: 'ล้าง' },
+  'draw.submit': { en: 'Use this floor plan', th: 'ใช้แปลนนี้' },
   'upload.subtitle': { en: 'or click to browse \u00B7 JPG, PNG', th: 'หรือคลิกเพื่อเลือกไฟล์ \u00B7 JPG, PNG' },
 
   // ── Loading States ──

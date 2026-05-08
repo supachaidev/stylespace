@@ -38,6 +38,7 @@ import { getStylePresets, createCustomStyle, createRandomStyle } from './styles'
 import { getQuizQuestions, calculateResult, getMaxScore, buildAnswerSummary, type QuizResult } from './quiz';
 import { t, getLang, setLang, onLangChange } from './i18n';
 import { resizeImageFile } from './lib/resize';
+import { FloorPlanCanvas } from './lib/draw';
 import type { StylePreset, AnalyzeResponse, RenderResponse, RecommendResponse, BomLine, RoomInfo, SharePayload, ShareResponse } from './types';
 
 // Max image dimensions sent to each API. Matches the previous Python
@@ -96,6 +97,12 @@ let currentView: 'upload' | 'loading' | 'quiz' | 'styles' | 'result' | 'error' =
  * with no floor-plan file to upload).
  */
 let isSharedView = false;
+
+/**
+ * Drawing canvas controller. Lazily instantiated on first switch to draw
+ * mode so users who never use it don't pay the canvas-init cost.
+ */
+let drawCanvas: FloorPlanCanvas | null = null;
 
 
 // ─── Browser History (Back/Forward Navigation) ──────────────────────────────
@@ -1303,6 +1310,14 @@ function updateStaticText(): void {
   document.querySelector('.tagline')!.textContent = t('header.tagline');
   document.querySelector('.upload-text')!.textContent = t('upload.title');
   document.querySelector('.upload-subtext')!.textContent = t('upload.subtitle');
+  document.getElementById('mode-upload-label')!.textContent = t('mode.upload');
+  document.getElementById('mode-draw-label')!.textContent = t('mode.draw');
+  document.getElementById('draw-hint-text')!.textContent = t('draw.hint');
+  document.getElementById('tool-pen-label')!.textContent = t('draw.tool.pen');
+  document.getElementById('tool-eraser-label')!.textContent = t('draw.tool.eraser');
+  document.getElementById('draw-undo-label')!.textContent = t('draw.undo');
+  document.getElementById('draw-clear-label')!.textContent = t('draw.clear');
+  document.getElementById('draw-submit-label')!.textContent = t('draw.submit');
   document.getElementById('retry-btn')!.textContent = t('btn.tryAgain');
   document.getElementById('skip-quiz-btn')!.textContent = t('btn.skipQuiz');
   document.getElementById('retake-quiz-btn')!.textContent = t('btn.retakeQuiz');
@@ -1410,6 +1425,64 @@ document.addEventListener('DOMContentLoaded', () => {
   fileInput.addEventListener('change', () => {
     const file = fileInput.files?.[0];
     if (file) handleUpload(file);
+  });
+
+  // ── Mode switch: Upload vs Draw ──
+  // Toggles which sub-view of the upload section is visible. The draw
+  // canvas is lazily constructed on first switch so users who never tap
+  // Draw don't pay the canvas-init cost.
+  const modeUploadBtn = document.getElementById('mode-upload-btn')!;
+  const modeDrawBtn = document.getElementById('mode-draw-btn')!;
+  const drawZone = document.getElementById('draw-zone')!;
+  const submitBtn = document.getElementById('draw-submit-btn') as HTMLButtonElement;
+  const undoBtn = document.getElementById('draw-undo-btn') as HTMLButtonElement;
+  const clearBtn = document.getElementById('draw-clear-btn') as HTMLButtonElement;
+  const penBtn = document.getElementById('tool-pen-btn')!;
+  const eraserBtn = document.getElementById('tool-eraser-btn')!;
+
+  function setMode(mode: 'upload' | 'draw'): void {
+    modeUploadBtn.classList.toggle('active', mode === 'upload');
+    modeUploadBtn.setAttribute('aria-selected', mode === 'upload' ? 'true' : 'false');
+    modeDrawBtn.classList.toggle('active', mode === 'draw');
+    modeDrawBtn.setAttribute('aria-selected', mode === 'draw' ? 'true' : 'false');
+    uploadZone.classList.toggle('hidden', mode === 'draw');
+    drawZone.classList.toggle('hidden', mode === 'upload');
+
+    if (mode === 'draw' && !drawCanvas) {
+      const canvasEl = document.getElementById('draw-canvas') as HTMLCanvasElement;
+      drawCanvas = new FloorPlanCanvas(canvasEl, syncDrawButtons);
+    }
+  }
+
+  function syncDrawButtons(): void {
+    if (!drawCanvas) return;
+    const empty = drawCanvas.isEmpty();
+    submitBtn.disabled = empty;
+    undoBtn.disabled = empty;
+    clearBtn.disabled = empty;
+    drawZone.classList.toggle('has-content', !empty);
+  }
+
+  function setDrawTool(tool: 'pen' | 'eraser'): void {
+    if (!drawCanvas) return;
+    drawCanvas.setTool(tool);
+    penBtn.classList.toggle('active', tool === 'pen');
+    penBtn.setAttribute('aria-pressed', tool === 'pen' ? 'true' : 'false');
+    eraserBtn.classList.toggle('active', tool === 'eraser');
+    eraserBtn.setAttribute('aria-pressed', tool === 'eraser' ? 'true' : 'false');
+    drawZone.classList.toggle('tool-eraser', tool === 'eraser');
+  }
+
+  modeUploadBtn.addEventListener('click', () => setMode('upload'));
+  modeDrawBtn.addEventListener('click', () => setMode('draw'));
+  penBtn.addEventListener('click', () => setDrawTool('pen'));
+  eraserBtn.addEventListener('click', () => setDrawTool('eraser'));
+  undoBtn.addEventListener('click', () => drawCanvas?.undo());
+  clearBtn.addEventListener('click', () => drawCanvas?.clear());
+  submitBtn.addEventListener('click', async () => {
+    if (!drawCanvas || drawCanvas.isEmpty()) return;
+    const file = await drawCanvas.toFile('floor-plan.png');
+    handleUpload(file);
   });
 
   // ── Button event listeners ──

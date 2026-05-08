@@ -63,6 +63,30 @@
       ════════════════════════════════════════════════════════════
     -->
     <section id="upload-section">
+      <!-- iOS-style segmented control: choose between uploading a photo of
+           the floor plan or drawing one freehand on a canvas. -->
+      <div class="mode-switch" role="tablist" aria-label="Floor plan input mode">
+        <button id="mode-upload-btn" class="mode-switch-option active" role="tab" aria-selected="true">
+          <span class="mode-switch-icon" aria-hidden="true">
+            <svg viewBox="0 0 22 22" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M11 14 V4"/>
+              <path d="M7 8 L11 4 L15 8"/>
+              <path d="M5 13 V16 A2 2 0 0 0 7 18 H15 A2 2 0 0 0 17 16 V13"/>
+            </svg>
+          </span>
+          <span id="mode-upload-label">Upload</span>
+        </button>
+        <button id="mode-draw-btn" class="mode-switch-option" role="tab" aria-selected="false">
+          <span class="mode-switch-icon" aria-hidden="true">
+            <svg viewBox="0 0 22 22" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 19 L8 18 L18 8 L14 4 L4 14 Z"/>
+              <path d="M13 5 L17 9"/>
+            </svg>
+          </span>
+          <span id="mode-draw-label">Draw</span>
+        </button>
+      </div>
+
       <div id="upload-zone">
         <input type="file" id="file-input" accept="image/*" hidden />
         <div class="upload-icon-wrapper">
@@ -77,6 +101,48 @@
         </div>
         <p class="upload-text">Drop your floor plan here</p>
         <p class="upload-subtext">or click to browse · JPG, PNG</p>
+      </div>
+
+      <!-- Drawing mode: hidden by default, revealed when user picks Draw.
+           The canvas exports a PNG that drops into the same handleUpload pipeline. -->
+      <div id="draw-zone" class="hidden">
+        <div class="draw-toolbar">
+          <div class="draw-tools" role="group" aria-label="Drawing tools">
+            <button id="tool-pen-btn" class="draw-tool active" aria-pressed="true" title="Pen">
+              <svg viewBox="0 0 22 22" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M3 19 L8 18 L18 8 L14 4 L4 14 Z"/>
+                <path d="M13 5 L17 9"/>
+              </svg>
+              <span id="tool-pen-label">Pen</span>
+            </button>
+            <button id="tool-eraser-btn" class="draw-tool" aria-pressed="false" title="Eraser">
+              <svg viewBox="0 0 22 22" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M4 17 L9 12 L14 17 L19 12 L14 7 L4 17 Z"/>
+                <path d="M9 12 L14 17"/>
+              </svg>
+              <span id="tool-eraser-label">Eraser</span>
+            </button>
+          </div>
+          <div class="draw-actions">
+            <button id="draw-undo-btn" class="btn-secondary" disabled>
+              <span id="draw-undo-label">Undo</span>
+            </button>
+            <button id="draw-clear-btn" class="btn-secondary" disabled>
+              <span id="draw-clear-label">Clear</span>
+            </button>
+          </div>
+        </div>
+        <div class="draw-canvas-wrap">
+          <canvas id="draw-canvas" aria-label="Draw your floor plan"></canvas>
+          <div class="draw-hint" id="draw-hint">
+            <span id="draw-hint-text">Sketch your floor plan — rooms, walls, doors</span>
+          </div>
+        </div>
+        <div class="draw-submit-row">
+          <button id="draw-submit-btn" class="btn-primary" disabled>
+            <span id="draw-submit-label">Use this floor plan</span>
+          </button>
+        </div>
       </div>
     </section>
 
