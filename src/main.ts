@@ -237,6 +237,10 @@ function renderQuizStep(): void {
     t('quiz.step').replace('{current}', String(quizStep + 1)).replace('{total}', String(total));
   questionEl.textContent = q.question;
 
+  // Show the back button from question 2 onwards; hide on Q1 since there's
+  // nothing to go back to.
+  document.getElementById('quiz-back-btn')!.classList.toggle('hidden', quizStep === 0);
+
   // Animate the progress bar to reflect current position. scaleX 0..1 maps
   // to 0..100% — see the .quiz-progress-bar rule for why this isn't `width`.
   const bar = document.getElementById('quiz-progress-bar')!;
@@ -256,6 +260,12 @@ function renderQuizStep(): void {
       <span class="quiz-option-icon">${option.icon}</span>
       <span class="quiz-option-label">${option.label}</span>
     `;
+    // If the user is revisiting this question via the back button, restore
+    // the prior selection visual so they can see what they originally picked.
+    if (quizAnswers[quizStep] === idx) {
+      btn.classList.add('selected');
+    }
+
     btn.addEventListener('click', () => {
       // Show selection highlight on the clicked option
       container.querySelectorAll('.quiz-option').forEach(b => b.classList.remove('selected'));
@@ -579,6 +589,13 @@ function showResultRaw(renderUrl: string, style: StylePreset, bom: RecommendResp
   document.getElementById('regenerate-btn')!.classList.remove('hidden');
   document.getElementById('try-another-style-btn')!.classList.remove('hidden');
 
+  // Reset the mobile BOM toggle to expanded so the cascade reveal plays
+  // for each new render. (The user can collapse it again afterwards.)
+  const bomPanel = document.getElementById('bom-panel');
+  const bomToggle = document.getElementById('bom-toggle-btn');
+  if (bomPanel) bomPanel.classList.remove('bom-collapsed');
+  if (bomToggle) bomToggle.setAttribute('aria-expanded', 'true');
+
   // Display the render image and style info. Reset the .loaded class so
   // the fade-up plays again — same <img> element gets reused across
   // navigations, so without the reset the second result snaps in instantly.
@@ -796,6 +813,12 @@ function renderBomPanel(bom: RecommendResponse | null, animate = true): void {
   } else {
     totalValue.textContent = `฿${THB.format(bom.grand_total_thb)}`;
   }
+
+  // Mirror the grand total onto the mobile toggle so the running cost is
+  // visible even when the panel body is collapsed. The toggle itself is
+  // CSS-hidden on desktop, so this is harmless on wider viewports.
+  const toggleAmount = document.getElementById('bom-toggle-amount');
+  if (toggleAmount) toggleAmount.textContent = `฿${THB.format(bom.grand_total_thb)}`;
 }
 
 
@@ -863,6 +886,121 @@ function downloadCurrentRender(): void {
   if (!url) return;
   downloadDataUrl(url, `stylespace-${currentStyle.id}.png`);
 }
+
+// ─── Result Overflow Menu ───────────────────────────────────────────────────
+//
+// The result page once had five secondary buttons inline; on narrower
+// viewports they wrapped to two rows and felt cluttered. Now they live
+// behind a single "More" trigger. This function wires the open/close
+// behavior — the actual menu item handlers (Regenerate, Share, etc.) are
+// still bound by id elsewhere, so collapsing into a menu is purely a
+// presentation change.
+
+function setActionMenuOpen(open: boolean): void {
+  const list = document.getElementById('result-action-list');
+  const trigger = document.getElementById('more-actions-btn');
+  if (!list || !trigger) return;
+  if (open) {
+    list.removeAttribute('hidden');
+    trigger.setAttribute('aria-expanded', 'true');
+  } else {
+    list.setAttribute('hidden', '');
+    trigger.setAttribute('aria-expanded', 'false');
+  }
+}
+
+function setupActionMenu(): void {
+  const trigger = document.getElementById('more-actions-btn');
+  const list = document.getElementById('result-action-list');
+  const wrapper = document.getElementById('result-action-menu');
+  if (!trigger || !list || !wrapper) return;
+
+  trigger.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const isOpen = trigger.getAttribute('aria-expanded') === 'true';
+    setActionMenuOpen(!isOpen);
+  });
+
+  // Close after any menuitem click — the item's own listener still fires
+  // (click propagates up from child to wrapper), so action handlers run
+  // before this. Defer the close by one tick so handlers like Share that
+  // need the menu DOM (for "Copied" flash) finish their first frame first.
+  list.addEventListener('click', (e) => {
+    const target = e.target as HTMLElement;
+    if (target.closest('.action-menu-item')) {
+      // Close on next tick so the item's own click handler fires first
+      // and any "Copied" flash can render before the menu disappears.
+      window.setTimeout(() => setActionMenuOpen(false), 0);
+    }
+  });
+
+  // Outside-click + Escape close the menu. Click is captured at document
+  // level — the trigger's stopPropagation prevents this from firing on the
+  // very click that opened the menu.
+  document.addEventListener('click', (e) => {
+    if (!wrapper.contains(e.target as Node)) {
+      setActionMenuOpen(false);
+    }
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && trigger.getAttribute('aria-expanded') === 'true') {
+      setActionMenuOpen(false);
+      trigger.focus();
+    }
+  });
+}
+
+
+// ─── Lightbox ───────────────────────────────────────────────────────────────
+//
+// Click the result-page render to open it in a fullscreen viewer. The
+// underlying page is scroll-locked while the lightbox is open so a
+// trackpad scroll doesn't bleed through the backdrop. Pinch-zoom on the
+// inner image works natively via touch-action: pinch-zoom (see CSS).
+
+function openLightbox(srcUrl: string): void {
+  const lb = document.getElementById('lightbox');
+  const img = document.getElementById('lightbox-img') as HTMLImageElement | null;
+  if (!lb || !img) return;
+  img.src = srcUrl;
+  lb.classList.remove('hidden');
+  lb.setAttribute('aria-hidden', 'false');
+  document.body.classList.add('lightbox-open');
+}
+
+function closeLightbox(): void {
+  const lb = document.getElementById('lightbox');
+  if (!lb) return;
+  lb.classList.add('hidden');
+  lb.setAttribute('aria-hidden', 'true');
+  document.body.classList.remove('lightbox-open');
+}
+
+function setupLightbox(): void {
+  const renderImg = document.getElementById('render-image') as HTMLImageElement | null;
+  const lb = document.getElementById('lightbox');
+  const lbImg = document.getElementById('lightbox-img');
+  const closeBtn = document.getElementById('lightbox-close');
+  if (!renderImg || !lb || !lbImg || !closeBtn) return;
+
+  renderImg.addEventListener('click', () => {
+    if (!renderImg.src || !renderImg.classList.contains('loaded')) return;
+    openLightbox(renderImg.src);
+  });
+
+  // Backdrop click closes; clicks on the inner image don't propagate so
+  // they don't dismiss while the user is inspecting detail.
+  lb.addEventListener('click', () => closeLightbox());
+  lbImg.addEventListener('click', (e) => e.stopPropagation());
+  closeBtn.addEventListener('click', (e) => { e.stopPropagation(); closeLightbox(); });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !lb.classList.contains('hidden')) {
+      closeLightbox();
+    }
+  });
+}
+
 
 // ─── Share Link ─────────────────────────────────────────────────────────────
 //
@@ -992,9 +1130,27 @@ async function shareCurrentResult(): Promise<void> {
 
   if (copyResult === 'gesture' || copyResult === 'fallback-ok') {
     showToast(`${t('share.copied')} · ${url}`, 2800);
+    flashShareCopied(btn);
   } else {
     showToast(`${t('share.copyFailed')} ${url}`, 8000);
   }
+}
+
+/**
+ * Brief acknowledgement state on the Share menu item: swap label to
+ * "Copied" with a tint highlight for ~1.1s, then revert. Pairs with the
+ * toast (which carries the URL); the inline state is the immediate visual
+ * confirmation that the click "did" something.
+ */
+function flashShareCopied(btn: HTMLButtonElement | null): void {
+  if (!btn) return;
+  const original = t('btn.share');
+  btn.textContent = t('btn.copied');
+  btn.classList.add('copied-flash');
+  window.setTimeout(() => {
+    btn.classList.remove('copied-flash');
+    btn.textContent = original;
+  }, 1100);
 }
 
 /**
@@ -1330,6 +1486,10 @@ function updateStaticText(): void {
   document.getElementById('download-all-btn')!.textContent = t('btn.downloadAll');
   document.getElementById('save-quote-btn')!.textContent = t('btn.saveQuote');
   document.getElementById('share-btn')!.textContent = t('btn.share');
+  document.getElementById('more-actions-btn')!.setAttribute('aria-label', t('btn.more'));
+  document.getElementById('quiz-back-label')!.textContent = t('btn.back');
+  document.getElementById('bom-toggle-label')!.textContent = t('bom.toggleLabel');
+  document.getElementById('lightbox-close')!.setAttribute('aria-label', t('btn.close'));
   // The shared-view banner text is dynamic — update it whenever the
   // language changes so the shared visitor sees their preferred locale.
   const bannerText = document.getElementById('share-banner-text');
@@ -1519,6 +1679,48 @@ document.addEventListener('DOMContentLoaded', () => {
     showSectionRaw('quiz');
     renderQuizStep();
     pushState({ view: 'quiz' });
+  });
+
+  // ── Result overflow menu ──
+  // Opens on trigger click, closes on outside-click, Escape, or after a
+  // menuitem fires its action. The :focus-within / blur dance is avoided
+  // because Safari fires focusout before the menuitem click registers.
+  setupActionMenu();
+
+  // ── Quiz back button ──
+  // Step the cursor back one and re-render. The previous answer remains in
+  // quizAnswers — renderQuizStep restores its visual selection so the user
+  // sees what they originally picked.
+  document.getElementById('quiz-back-btn')!.addEventListener('click', () => {
+    if (quizStep <= 0) return;
+    const questionEl = document.getElementById('quiz-question')!;
+    const optionsEl = document.getElementById('quiz-options')!;
+    questionEl.style.opacity = '0';
+    questionEl.style.transform = 'translateY(4px)';
+    optionsEl.style.opacity = '0';
+    optionsEl.style.transform = 'translateY(4px)';
+    window.setTimeout(() => {
+      quizStep--;
+      renderQuizStep();
+    }, 140);
+  });
+
+  // ── Lightbox: click render to zoom ──
+  // Open on render-image click, close on backdrop / close-button / Escape.
+  // The image element itself stops propagation so clicking it doesn't
+  // dismiss — only clicking the surrounding backdrop does.
+  setupLightbox();
+
+  // ── Mobile BOM toggle ──
+  // Phones stack the BOM below the render. The toggle button (CSS-hidden
+  // on desktop) folds the body away so the user can flip between render
+  // and cost summary without losing their place.
+  document.getElementById('bom-toggle-btn')!.addEventListener('click', () => {
+    const panel = document.getElementById('bom-panel');
+    const btn = document.getElementById('bom-toggle-btn');
+    if (!panel || !btn) return;
+    const collapsed = panel.classList.toggle('bom-collapsed');
+    btn.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
   });
 
   // If the URL carries ?share=<id>, hydrate from the persisted snapshot

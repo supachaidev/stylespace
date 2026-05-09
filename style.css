@@ -1008,6 +1008,41 @@ main > section.leaving {
   max-width: 580px;
   margin: 0 auto;
   text-align: center;
+  position: relative;
+}
+
+/* Back affordance — iOS chevron-left style. Sits above the progress bar
+   on the left edge so it never competes with the centered question.
+   Hidden on Q1 (nothing to go back to) via .hidden in main.ts. */
+.quiz-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: none;
+  border: none;
+  color: var(--tint);
+  font-family: var(--font-system);
+  font-size: var(--type-subhead-size);
+  font-weight: 500;
+  letter-spacing: var(--type-subhead-track);
+  cursor: pointer;
+  padding: 6px 10px 6px 6px;
+  margin: 0 0 8px -10px;
+  border-radius: var(--radius-small);
+  transition: background 120ms var(--ease-smooth),
+              opacity 120ms var(--ease-snappy);
+}
+
+.quiz-back svg {
+  display: block;
+}
+
+.quiz-back:hover {
+  background: var(--tint-bg-soft);
+}
+
+.quiz-back:active {
+  opacity: 0.55;
 }
 
 /* iOS-style thin progress bar */
@@ -1455,6 +1490,93 @@ main > section.leaving {
   flex-shrink: 0;
   flex-wrap: wrap;
   justify-content: flex-end;
+  align-items: center;
+}
+
+/* ── Result overflow menu ──
+   Secondary actions (Regenerate, Share, Download, Save Quote, Download All)
+   live behind a single trigger. Keeps the bar from wrapping to two rows on
+   medium widths and reads as one decisive action plus a discoverable More. */
+.action-menu {
+  position: relative;
+  display: inline-flex;
+}
+
+.action-menu-trigger {
+  width: 36px;
+  padding: 0;
+  /* Override the standard btn-secondary padding so the dot icon sits centered */
+}
+
+.action-menu-trigger svg {
+  display: block;
+}
+
+.action-menu-list {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 200px;
+  background: var(--material-thick, var(--surface));
+  border: 0.5px solid var(--separator);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-2);
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  z-index: 50;
+  /* Soft entrance — same vocab as the toast (subtle slide + fade), but
+     anchored to the trigger via transform-origin so it grows from the
+     button rather than appearing detached. */
+  transform-origin: top right;
+  animation: actionMenuEnter 200ms var(--ease-snappy);
+  backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+}
+
+/* Our display:flex above otherwise wins against the [hidden] attribute's
+   default display:none — so the menu would render open on first paint.
+   Re-assert hidden here. */
+.action-menu-list[hidden] {
+  display: none;
+}
+
+@keyframes actionMenuEnter {
+  from { opacity: 0; transform: translateY(-4px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.action-menu-item {
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-small);
+  font-family: var(--font-system);
+  font-size: var(--type-subhead-size);
+  font-weight: 500;
+  letter-spacing: var(--type-subhead-track);
+  color: var(--label);
+  text-align: left;
+  padding: 9px 12px;
+  cursor: pointer;
+  transition: background 120ms var(--ease-smooth);
+  /* Match the iOS context-menu rhythm: rows aren't separated by full
+     dividers, just by a small gap from the parent padding. */
+}
+
+.action-menu-item:hover {
+  background: var(--fill-3);
+}
+
+.action-menu-item:active {
+  background: var(--fill-2);
+}
+
+/* Brief acknowledgement state — main.ts swaps the share menu item to
+   "Copied" + adds .copied-flash for ~1s after a successful clipboard write
+   before closing the menu. */
+.action-menu-item.copied-flash {
+  color: var(--tint);
+  background: var(--tint-bg-soft);
 }
 
 .result-body {
@@ -1483,6 +1605,7 @@ main > section.leaving {
   transform-origin: center;
   transition: opacity 360ms var(--ease-snappy),
               transform 360ms var(--ease-snappy);
+  cursor: zoom-in;
 }
 
 .render-container img.loaded {
@@ -1509,6 +1632,51 @@ main > section.leaving {
   top: 16px;
   max-height: calc(100vh - 32px);
   overflow-y: auto;
+}
+
+/* Mobile-only toggle. Hidden on desktop where the sticky sidebar already
+   keeps the BOM in view; on phones the panel stacks below the render and
+   this becomes the visual handle into Materials & Cost. */
+.bom-toggle {
+  display: none;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  background: var(--fill-3);
+  border: none;
+  border-radius: var(--radius-control);
+  font-family: var(--font-system);
+  font-size: var(--type-subhead-size);
+  font-weight: 600;
+  letter-spacing: var(--type-subhead-track);
+  color: var(--label);
+  cursor: pointer;
+  width: 100%;
+  text-align: left;
+  transition: background 120ms var(--ease-smooth);
+}
+
+.bom-toggle:hover {
+  background: var(--fill-2);
+}
+
+.bom-toggle-label {
+  flex: 1;
+}
+
+.bom-toggle-amount {
+  font-variant-numeric: tabular-nums;
+  color: var(--tint);
+  font-weight: 600;
+}
+
+.bom-toggle-chevron {
+  color: var(--label-2);
+  transition: transform 220ms var(--ease-snappy);
+}
+
+.bom-panel.bom-collapsed .bom-toggle-chevron {
+  transform: rotate(-90deg);
 }
 
 .bom-eyebrow {
@@ -1738,6 +1906,8 @@ main > section.leaving {
   header .tagline,
   .btn-home,
   .result-actions,
+  .bom-toggle,
+  .lightbox,
   footer {
     display: none !important;
   }
@@ -2095,6 +2265,91 @@ main > section.leaving {
 
 
 /* ═══════════════════════════════════════════════════════════════════════════
+   LIGHTBOX — fullscreen render viewer
+   Opens when the user clicks the result-page render. Backdrop is the same
+   vibrancy-blur material as the toast/menu so it reads as a system overlay
+   rather than a hard cutout.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px;
+  background: rgba(0, 0, 0, 0.72);
+  backdrop-filter: saturate(140%) blur(28px);
+  -webkit-backdrop-filter: saturate(140%) blur(28px);
+  cursor: zoom-out;
+  /* Fade-up entrance — duration matched to the result image's reveal so
+     the lightbox feels like the same surface stepping forward. */
+  animation: lightboxEnter 220ms var(--ease-snappy);
+}
+
+@keyframes lightboxEnter {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.lightbox-img {
+  max-width: 100%;
+  max-height: 100%;
+  width: auto;
+  height: auto;
+  border-radius: var(--radius-card);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.4);
+  cursor: default;
+  /* Spring in from 96% so it reads as zooming forward from the page. */
+  animation: lightboxImgEnter 280ms var(--ease-spring);
+  /* Allow native pinch-zoom on touch devices so users can inspect detail. */
+  touch-action: pinch-zoom;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+@keyframes lightboxImgEnter {
+  from { opacity: 0; transform: scale(0.96); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+.lightbox-close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--material-thin);
+  backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  border: 0.5px solid var(--separator);
+  color: var(--label);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 120ms var(--ease-smooth),
+              transform 120ms var(--ease-snappy);
+}
+
+.lightbox-close:hover {
+  background: var(--fill-2);
+}
+
+.lightbox-close:active {
+  transform: scale(0.94);
+}
+
+/* Body scroll lock — main.ts adds this class when the lightbox is open
+   so the underlying page doesn't scroll while the user is inspecting. */
+body.lightbox-open {
+  overflow: hidden;
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
    FLOATING OVERLAY (background generation indicator)
    Vibrancy-material toast pinned to the bottom edge.
    ═══════════════════════════════════════════════════════════════════════════ */
@@ -2220,6 +2475,33 @@ footer {
   .bom-panel {
     position: static;
     max-height: none;
+  }
+
+  /* Reveal the mobile toggle and let it pin to the top of the panel —
+     so even when the user has scrolled past the render, the cost summary
+     stays anchored above the BOM body. */
+  .bom-toggle {
+    display: inline-flex;
+    position: sticky;
+    top: 8px;
+    z-index: 5;
+    /* Slight elevation so it reads as a control, not part of the list */
+    box-shadow: var(--shadow-1);
+  }
+
+  /* Collapsed state: only the toggle is visible, everything else folds away.
+     Keeps the page from becoming a wall of text on phones while the toggle
+     itself shows the running total — the one number that always matters. */
+  .bom-panel.bom-collapsed {
+    padding-bottom: 12px;
+    gap: 0;
+  }
+
+  .bom-panel.bom-collapsed .bom-header,
+  .bom-panel.bom-collapsed .bom-rooms,
+  .bom-panel.bom-collapsed .bom-total,
+  .bom-panel.bom-collapsed .bom-disclaimer {
+    display: none;
   }
 }
 

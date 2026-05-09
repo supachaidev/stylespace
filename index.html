@@ -196,6 +196,16 @@
     -->
     <section id="quiz-section" class="hidden">
       <div class="quiz-container">
+        <!--
+          Back affordance — appears from question 2 onwards so users who
+          mis-tap can correct without retaking the whole quiz.
+        -->
+        <button id="quiz-back-btn" class="quiz-back hidden" type="button">
+          <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M10 12 L6 8 L10 4"/>
+          </svg>
+          <span id="quiz-back-label">Back</span>
+        </button>
         <div class="quiz-progress">
           <div class="quiz-progress-bar" id="quiz-progress-bar"></div>
         </div>
@@ -273,10 +283,27 @@
           <p class="result-style-desc" id="result-style-desc"></p>
         </div>
         <div class="result-actions">
-          <button id="share-btn" class="btn-secondary">Share</button>
-          <button id="save-quote-btn" class="btn-secondary">Save Quote</button>
-          <button id="download-btn" class="btn-secondary">Download</button>
-          <button id="regenerate-btn" class="btn-secondary">Regenerate</button>
+          <!--
+            Overflow menu — secondary actions live behind a single trigger so
+            the action bar stays calm and never wraps to two rows on narrower
+            viewports. The primary CTA (Try Another Style) sits next to it.
+          -->
+          <div class="action-menu" id="result-action-menu">
+            <button id="more-actions-btn" class="btn-secondary action-menu-trigger" aria-haspopup="menu" aria-expanded="false" aria-label="More actions">
+              <svg viewBox="0 0 22 22" width="20" height="20" fill="currentColor" aria-hidden="true">
+                <circle cx="5" cy="11" r="1.6"/>
+                <circle cx="11" cy="11" r="1.6"/>
+                <circle cx="17" cy="11" r="1.6"/>
+              </svg>
+            </button>
+            <div class="action-menu-list" id="result-action-list" role="menu" hidden>
+              <button id="regenerate-btn" class="action-menu-item" role="menuitem" type="button">Regenerate</button>
+              <button id="share-btn" class="action-menu-item" role="menuitem" type="button">Share</button>
+              <button id="download-btn" class="action-menu-item" role="menuitem" type="button">Download</button>
+              <button id="download-all-btn" class="action-menu-item hidden" role="menuitem" type="button">Download All</button>
+              <button id="save-quote-btn" class="action-menu-item" role="menuitem" type="button">Save Quote</button>
+            </div>
+          </div>
           <button id="try-another-style-btn" class="btn-primary">Try Another Style</button>
         </div>
       </div>
@@ -285,6 +312,20 @@
           <img id="render-image" src="" alt="AI Render" />
         </div>
         <aside class="bom-panel" id="bom-panel">
+          <!--
+            Mobile-only collapsible header. On phones the BOM stacks below
+            the render and can be missed in a long scroll, so we surface a
+            sticky "View Materials & Cost · ฿X" toggle that's impossible
+            to miss. CSS hides this on tablet/desktop where the sticky
+            sidebar already does the job.
+          -->
+          <button id="bom-toggle-btn" class="bom-toggle" type="button" aria-expanded="true" aria-controls="bom-panel">
+            <span class="bom-toggle-label" id="bom-toggle-label">Materials &amp; Cost</span>
+            <span class="bom-toggle-amount" id="bom-toggle-amount"></span>
+            <svg class="bom-toggle-chevron" viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M4 6 L8 10 L12 6"/>
+            </svg>
+          </button>
           <div class="bom-header">
             <p class="bom-eyebrow" id="bom-eyebrow">Materials &amp; Cost</p>
             <h3 class="bom-rationale" id="bom-rationale"></h3>
@@ -308,6 +349,21 @@
 
   <!-- Vibrancy-material toast that appears for ~2s after Share copies the link -->
   <div class="toast hidden" id="toast" role="status" aria-live="polite"></div>
+
+  <!--
+    Lightbox — clicking the render opens a fullscreen viewer so users can
+    inspect detail without browser-zooming the whole page. Backdrop click,
+    close button, and Escape all dismiss. Pinch-zoom on the inner image is
+    allowed via touch-action so phone users can scrutinize materials.
+  -->
+  <div id="lightbox" class="lightbox hidden" role="dialog" aria-modal="true" aria-hidden="true">
+    <button id="lightbox-close" class="lightbox-close" type="button" aria-label="Close">
+      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M6 6 L18 18 M18 6 L6 18"/>
+      </svg>
+    </button>
+    <img id="lightbox-img" class="lightbox-img" src="" alt="" />
+  </div>
 
   <script type="module" src="/src/main.ts"></script>
 </body>

@@ -145,6 +145,10 @@ const UI_STRINGS: Record<string, Record<Lang, string>> = {
   'btn.downloadAll': { en: 'Download All', th: 'ดาวน์โหลดทั้งหมด' },
   'btn.saveQuote': { en: 'Save Quote', th: 'บันทึกใบเสนอราคา' },
   'btn.share': { en: 'Share', th: 'แชร์' },
+  'btn.copied': { en: 'Copied', th: 'คัดลอกแล้ว' },
+  'btn.more': { en: 'More', th: 'เพิ่มเติม' },
+  'btn.back': { en: 'Back', th: 'ย้อนกลับ' },
+  'btn.close': { en: 'Close', th: 'ปิด' },
   'btn.home': { en: 'Home', th: 'หน้าแรก' },
 
   // ── Share Flow ──
@@ -169,6 +173,7 @@ const UI_STRINGS: Record<string, Record<Lang, string>> = {
 
   // ── Bill of Materials Panel ──
   'bom.eyebrow': { en: 'Materials & Cost', th: 'วัสดุและราคา' },
+  'bom.toggleLabel': { en: 'Materials & Cost', th: 'วัสดุและราคา' },
   'bom.computing': { en: 'Picking SCG products for this style…', th: 'กำลังจับคู่สินค้า SCG สำหรับสไตล์นี้…' },
   'bom.totalLabel': { en: 'Total estimated cost', th: 'ราคารวมประมาณ' },
   'bom.disclaimer': {
