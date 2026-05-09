@@ -2459,6 +2459,15 @@ footer {
     justify-content: flex-start;
   }
 
+  /* The trigger now sits on the left edge of the row, so the menu must
+     anchor left too — otherwise its 200px width spills past the viewport
+     on the left side and the items get clipped. */
+  .result-actions .action-menu-list {
+    right: auto;
+    left: 0;
+    transform-origin: top left;
+  }
+
   .custom-style-card {
     grid-template-columns: 1fr;
   }
