@@ -1737,6 +1737,72 @@ main > section.leaving {
   line-height: var(--type-caption-lh);
   color: var(--label-3);
   font-weight: 500;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  white-space: nowrap;
+}
+
+/* Inline editable area: tight number input that visually reads as a value
+   you can tap to refine, not a chunky form field. The thin tinted border
+   surfaces the affordance without shouting. */
+.bom-room-area-input {
+  width: 3.6em;
+  padding: 1px 4px;
+  margin: 0;
+  font: inherit;
+  font-weight: 600;
+  color: var(--label);
+  background: var(--fill-4);
+  border: 0.5px solid var(--separator);
+  border-radius: 6px;
+  text-align: right;
+  -moz-appearance: textfield;
+  appearance: textfield;
+  transition: background-color 120ms ease, border-color 120ms ease, box-shadow 120ms ease;
+}
+
+/* Hide the spinner controls — the input is small enough that they'd
+   crowd the value. Users can use up/down arrow keys instead. */
+.bom-room-area-input::-webkit-outer-spin-button,
+.bom-room-area-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.bom-room-area-input:hover {
+  background: var(--fill-3);
+}
+
+.bom-room-area-input:focus {
+  outline: none;
+  background: var(--fill-3);
+  border-color: var(--tint);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--tint) 18%, transparent);
+}
+
+/* Pencil-style revert affordance — only rendered when the area differs
+   from what Claude originally inferred. Sits inline with the value. */
+.bom-room-area-revert {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 2px;
+  padding: 0 5px;
+  height: 18px;
+  font-size: 12px;
+  line-height: 1;
+  color: var(--label-3);
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: color 120ms ease, background-color 120ms ease;
+}
+
+.bom-room-area-revert:hover {
+  color: var(--tint);
+  background: var(--fill-4);
 }
 
 .bom-line {
@@ -2119,6 +2185,24 @@ main > section.leaving {
     font-size: 10px;
     color: #777;
     margin-bottom: 4px;
+  }
+
+  /* Print the area as a plain number — strip the input chrome and revert
+     button so the quote PDF looks like a static document, not a form. */
+  .bom-room-area-input {
+    border: none;
+    background: transparent;
+    padding: 0;
+    width: auto;
+    font: inherit;
+    color: inherit;
+    text-align: left;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+
+  .bom-room-area-revert {
+    display: none;
   }
 
   .bom-line-name {

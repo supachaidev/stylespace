@@ -182,6 +182,8 @@ const UI_STRINGS: Record<string, Record<Lang, string>> = {
   },
   'bom.empty': { en: 'No products matched this style.', th: 'ยังไม่มีสินค้าที่ตรงกับสไตล์นี้' },
   'bom.area': { en: '{area} m² · {zone}', th: '{area} ตร.ม. · {zone}' },
+  'bom.area.aria': { en: 'Area for {room} in square metres', th: 'พื้นที่ของ {room} หน่วยตารางเมตร' },
+  'bom.area.revert': { en: 'Reset to {area} m²', th: 'คืนค่าเป็น {area} ตร.ม.' },
   'bom.zone.wet': { en: 'wet zone', th: 'พื้นที่เปียก' },
   'bom.zone.dry': { en: 'dry zone', th: 'พื้นที่แห้ง' },
   'bom.qty.m2': { en: '{qty} m² × ฿{price}', th: '{qty} ตร.ม. × ฿{price}' },

@@ -72,14 +72,30 @@ const renderCache = new Map<string, string>();
  * In-memory cache: styleId → SCG bill of materials.
  * /api/recommend is called once per (style, floor plan) pair; later visits
  * reuse the same BOM. Cleared on new upload.
+ *
+ * `baseAreas` snapshots the room m² values that were sent to /api/recommend
+ * when this bom was generated. The user can later edit room sizes in the
+ * BOM panel; we scale m²-priced lines by `(currentArea / baseArea)` against
+ * this snapshot, so repeated edits don't drift through rounding.
  */
-const bomCache = new Map<string, RecommendResponse>();
+interface CachedBom { bom: RecommendResponse; baseAreas: Record<string, number> }
+const bomCache = new Map<string, CachedBom>();
 
 /** The style currently being displayed in the result view */
 let currentStyle: StylePreset | null = null;
 
-/** The BOM matching the currently displayed render (null until recommend resolves) */
+/** The BOM matching the currently displayed render (null until recommend resolves).
+ *  This is the *displayed* bom, after any user edits to room sizes have been
+ *  applied. The pristine API response lives in `originalBom`. */
 let currentBom: RecommendResponse | null = null;
+
+/** Pristine bom from /api/recommend, kept so room-area edits can rescale
+ *  lines deterministically against the original quantities (avoids rounding
+ *  drift when the user edits the same area multiple times). */
+let originalBom: RecommendResponse | null = null;
+
+/** Room areas (m²) at the moment `originalBom` was generated. */
+let bomBaseAreas: Record<string, number> = {};
 
 // Quiz state
 let quizAnswers: number[] = [];  // Array of selected option indices (one per question)
@@ -179,6 +195,8 @@ async function handleUpload(file: File): Promise<void> {
   bomCache.clear();
   baseRender = null;
   currentBom = null;
+  originalBom = null;
+  bomBaseAreas = {};
   quizAnswers = [];
   quizStep = 0;
 
@@ -337,7 +355,59 @@ async function finishQuiz(): Promise<void> {
 // rationale) and the Gemini render (the material_summary line is appended
 // to the prompt so the render visibly uses the chosen finishes).
 
-async function getBomForStyle(style: StylePreset): Promise<RecommendResponse | null> {
+/** Snapshot the current room areas keyed by id — used as the baseline for
+ *  scaling m² lines when the user edits a room's size. */
+function snapshotAreas(rooms: RoomInfo[]): Record<string, number> {
+  const out: Record<string, number> = {};
+  for (const r of rooms) out[r.id] = r.area_sqm;
+  return out;
+}
+
+/** Round an m² quantity to 1 decimal, mirroring the server's roundQuantity. */
+function roundSqm(q: number): number { return Math.max(0.1, Math.round(q * 10) / 10); }
+
+/**
+ * Derive the BOM the user actually sees from the original API response.
+ *
+ * For each line priced per m², scale the quantity by `(currentArea/baseArea)`
+ * for that room and recompute the line total. Fixture counts (piece, 9L can)
+ * stay put — a bigger living room doesn't add a second toilet. Grand total is
+ * recomputed from the scaled lines.
+ *
+ * Scaling against the *original* base areas (not the previous edit) keeps
+ * repeated edits free of rounding drift: editing 20 → 25 → 20 lands back on
+ * the original quantities.
+ */
+function deriveDisplayBom(
+  original: RecommendResponse,
+  baseAreas: Record<string, number>,
+  currentRooms: RoomInfo[],
+): RecommendResponse {
+  const currentAreaById: Record<string, number> = {};
+  for (const r of currentRooms) currentAreaById[r.id] = r.area_sqm;
+
+  const lines = original.bom.map((line) => {
+    // Catalog ProductUnit is 'm2' (ASCII), not 'm²' — be liberal so a
+    // future cosmetic switch to the symbol doesn't silently break scaling.
+    if (line.unit !== 'm2' && line.unit !== 'm²') return line;
+    const base = baseAreas[line.room_id];
+    const cur = currentAreaById[line.room_id];
+    if (!base || !cur || base === cur) return line;
+
+    const scale = cur / base;
+    const newQty = roundSqm(line.quantity * scale);
+    return {
+      ...line,
+      quantity: newQty,
+      line_total_thb: Math.round(newQty * line.unit_price_thb),
+    };
+  });
+
+  const grand = lines.reduce((sum, l) => sum + l.line_total_thb, 0);
+  return { ...original, bom: lines, grand_total_thb: grand };
+}
+
+async function getBomForStyle(style: StylePreset): Promise<CachedBom | null> {
   if (!currentAnalysis) return null;
 
   // Per-session cache — same style on the same floor plan reuses the BOM.
@@ -359,8 +429,11 @@ async function getBomForStyle(style: StylePreset): Promise<RecommendResponse | n
   const data = await res.json() as RecommendResponse;
   if (data.error) throw new Error(data.error);
 
-  bomCache.set(style.id, data);
-  return data;
+  // Snapshot the areas Claude used to pick quantities — they're our baseline
+  // for any later in-panel resize.
+  const entry: CachedBom = { bom: data, baseAreas: snapshotAreas(currentAnalysis.rooms) };
+  bomCache.set(style.id, entry);
+  return entry;
 }
 
 
@@ -390,7 +463,7 @@ async function generateFirstRender(style: StylePreset): Promise<void> {
     form.append('file', resized);
     form.append('style_prompt', style.prompt);
     form.append('room_data', JSON.stringify(currentAnalysis));
-    if (bom?.material_summary) form.append('material_summary', bom.material_summary);
+    if (bom?.bom.material_summary) form.append('material_summary', bom.bom.material_summary);
 
     const res = await fetch('/api/generate', { method: 'POST', body: form });
     const data = await res.json() as RenderResponse;
@@ -541,7 +614,7 @@ async function selectStyle(style: StylePreset): Promise<void> {
     const form = new FormData();
     form.append('base_image', baseRender);
     form.append('style_prompt', style.prompt);
-    if (bom?.material_summary) form.append('material_summary', bom.material_summary);
+    if (bom?.bom.material_summary) form.append('material_summary', bom.bom.material_summary);
 
     const res = await fetch('/api/restyle', { method: 'POST', body: form });
     const data = await res.json() as RenderResponse;
@@ -574,15 +647,28 @@ function updateStyleCard(styleId: string, renderUrl: string): void {
 // ─── Result Display ─────────────────────────────────────────────────────────
 
 /** Show the render result and push a history entry */
-function showResult(renderUrl: string, style: StylePreset, bom: RecommendResponse | null): void {
+function showResult(renderUrl: string, style: StylePreset, bom: CachedBom | null): void {
   showResultRaw(renderUrl, style, bom);
   pushState({ view: 'result', styleId: style.id });
 }
 
-/** Show the render result without pushing history (used by restoreState) */
-function showResultRaw(renderUrl: string, style: StylePreset, bom: RecommendResponse | null): void {
+/** Show the render result without pushing history (used by restoreState).
+ *  Takes a CachedBom so we can stash the original + base areas needed for
+ *  later in-panel m² edits. */
+function showResultRaw(renderUrl: string, style: StylePreset, cached: CachedBom | null): void {
   currentStyle = style;
-  currentBom = bom;
+  if (cached) {
+    originalBom = cached.bom;
+    bomBaseAreas = cached.baseAreas;
+    // Apply any edits the user has already made (e.g. came back via history).
+    currentBom = currentAnalysis
+      ? deriveDisplayBom(cached.bom, cached.baseAreas, currentAnalysis.rooms)
+      : cached.bom;
+  } else {
+    originalBom = null;
+    bomBaseAreas = {};
+    currentBom = null;
+  }
   showSectionRaw('result');
 
   // Ensure action buttons are visible
@@ -611,7 +697,7 @@ function showResultRaw(renderUrl: string, style: StylePreset, bom: RecommendResp
   document.getElementById('result-style-name')!.textContent = style.label;
   document.getElementById('result-style-desc')!.textContent = style.description;
 
-  renderBomPanel(bom);
+  renderBomPanel(currentBom);
 }
 
 
@@ -635,11 +721,15 @@ const BOM_STAGGER_CAP = 16;
 let bomCountUpFrame: number | null = null;
 
 /**
- * Tween the total value from 0 → final over 600ms with an ease-out-cubic
- * curve. Runs in parallel with the BOM cascade so the eye lands on a
- * number that's still settling — the demo's "reveal" beat for SCG.
+ * Tween the total value to its new amount over a short ease-out-cubic curve.
+ *
+ * - Initial reveal (`fromCurrent=false`): start at ฿0 and run a 600ms
+ *   count-up — the demo's "reveal" beat for SCG.
+ * - Edit re-render (`fromCurrent=true`): parse whatever's already on screen
+ *   and tween from there over 320ms, so room-size edits feel like the total
+ *   is morphing, not reloading.
  */
-function animateBomTotal(el: HTMLElement, value: number): void {
+function animateBomTotal(el: HTMLElement, value: number, fromCurrent = false): void {
   if (bomCountUpFrame !== null) {
     cancelAnimationFrame(bomCountUpFrame);
     bomCountUpFrame = null;
@@ -651,17 +741,18 @@ function animateBomTotal(el: HTMLElement, value: number): void {
     return;
   }
 
-  // Sync initial paint to ฿0 so a stale value from a prior render doesn't
-  // flash for one frame before the rAF tween takes over.
-  el.textContent = `฿${THB.format(0)}`;
+  const startVal = fromCurrent ? Number((el.textContent ?? '').replace(/[^\d]/g, '')) || 0 : 0;
+  const duration = fromCurrent ? 320 : 600;
+
+  // Pin the starting paint so a stale frame doesn't flash before rAF.
+  el.textContent = `฿${THB.format(startVal)}`;
 
   const start = performance.now();
-  const duration = 600;
 
   const step = (now: number) => {
     const t = Math.min(1, (now - start) / duration);
     const eased = 1 - Math.pow(1 - t, 3);
-    el.textContent = `฿${THB.format(Math.round(value * eased))}`;
+    el.textContent = `฿${THB.format(Math.round(startVal + (value - startVal) * eased))}`;
     if (t < 1) {
       bomCountUpFrame = requestAnimationFrame(step);
     } else {
@@ -680,7 +771,39 @@ function formatLineMeta(line: BomLine): string {
   return t(key).replace('{qty}', qtyStr).replace('{price}', priceStr);
 }
 
-function renderBomPanel(bom: RecommendResponse | null, animate = true): void {
+/**
+ * Apply a user-edited room area: clamp it to a sane range, mutate the
+ * analysis (so subsequent style picks and shares pick up the new size),
+ * rederive the displayed BOM by scaling m² lines, and re-render.
+ *
+ * Skips the entrance cascade and instead tweens just the grand total from
+ * its previous value so the change reads as a smooth update rather than a
+ * full panel re-reveal.
+ */
+function handleAreaEdit(roomId: string, rawArea: number): void {
+  if (!currentAnalysis || !originalBom) return;
+  if (!Number.isFinite(rawArea)) return;
+
+  const room = currentAnalysis.rooms.find((r) => r.id === roomId);
+  if (!room) return;
+
+  // Clamp to a sane envelope. The lower bound prevents tiny floors that
+  // would round paint cans down to 0; upper bound stops a stray "1000"
+  // from blowing the total to absurdity. One-decimal precision matches
+  // how Claude reports area_sqm.
+  const clamped = Math.max(1, Math.min(500, Math.round(rawArea * 10) / 10));
+  if (Math.abs(room.area_sqm - clamped) < 0.05) return;
+
+  room.area_sqm = clamped;
+  currentBom = deriveDisplayBom(originalBom, bomBaseAreas, currentAnalysis.rooms);
+  renderBomPanel(currentBom, false, true);
+}
+
+function renderBomPanel(
+  bom: RecommendResponse | null,
+  animate = true,
+  smoothTotalFromCurrent = false,
+): void {
   const eyebrow = document.getElementById('bom-eyebrow');
   const rationale = document.getElementById('bom-rationale');
   const roomsEl = document.getElementById('bom-rooms');
@@ -745,11 +868,51 @@ function renderBomPanel(bom: RecommendResponse | null, animate = true): void {
     name.className = 'bom-room-name';
     name.textContent = room.label;
 
+    // The area is editable: users can refine the m² Claude inferred and we
+    // rescale m²-priced lines (tile, paint) on the fly. Fixture counts stay
+    // put — a bigger room doesn't add a second toilet.
     const area = document.createElement('span');
     area.className = 'bom-room-area';
-    area.textContent = t('bom.area')
-      .replace('{area}', String(room.area_sqm))
-      .replace('{zone}', t(`bom.zone.${room.zone}`));
+
+    const tmpl = t('bom.area').replace('{zone}', t(`bom.zone.${room.zone}`));
+    const placeholder = '{area}';
+    const idx = tmpl.indexOf(placeholder);
+    const prefixText = idx >= 0 ? tmpl.slice(0, idx) : '';
+    const suffixText = idx >= 0 ? tmpl.slice(idx + placeholder.length) : ` ${tmpl}`;
+
+    if (prefixText) {
+      const pre = document.createElement('span');
+      pre.textContent = prefixText;
+      area.appendChild(pre);
+    }
+
+    const input = document.createElement('input');
+    input.type = 'number';
+    input.className = 'bom-room-area-input';
+    input.value = String(room.area_sqm);
+    input.min = '1';
+    input.max = '500';
+    input.step = '0.5';
+    input.inputMode = 'decimal';
+    input.setAttribute('aria-label', t('bom.area.aria').replace('{room}', room.label));
+    input.addEventListener('change', () => handleAreaEdit(room.id, input.valueAsNumber));
+    area.appendChild(input);
+
+    const suf = document.createElement('span');
+    suf.textContent = suffixText;
+    area.appendChild(suf);
+
+    const baseArea = bomBaseAreas[room.id];
+    if (baseArea !== undefined && Math.abs(room.area_sqm - baseArea) > 0.05) {
+      const revert = document.createElement('button');
+      revert.type = 'button';
+      revert.className = 'bom-room-area-revert';
+      revert.textContent = '↺';
+      revert.title = t('bom.area.revert').replace('{area}', String(baseArea));
+      revert.setAttribute('aria-label', revert.title);
+      revert.addEventListener('click', () => handleAreaEdit(room.id, baseArea));
+      area.appendChild(revert);
+    }
 
     header.appendChild(name);
     header.appendChild(area);
@@ -810,6 +973,8 @@ function renderBomPanel(bom: RecommendResponse | null, animate = true): void {
 
   if (animate) {
     animateBomTotal(totalValue, bom.grand_total_thb);
+  } else if (smoothTotalFromCurrent) {
+    animateBomTotal(totalValue, bom.grand_total_thb, true);
   } else {
     totalValue.textContent = `฿${THB.format(bom.grand_total_thb)}`;
   }
@@ -837,13 +1002,18 @@ async function regenerateRender(style: StylePreset): Promise<void> {
 
   try {
     // The BOM is deterministic per (style, plan), so we reuse the cached
-    // recommend result rather than re-running it on every regenerate.
-    const bom = bomCache.get(style.id) ?? currentBom;
+    // recommend result rather than re-running it on every regenerate. If the
+    // cache miss happens but we still have a current bom (e.g. shared view),
+    // wrap it with the current room areas so showResultRaw has a baseline.
+    const bom: CachedBom | null = bomCache.get(style.id)
+      ?? (originalBom
+        ? { bom: originalBom, baseAreas: bomBaseAreas }
+        : null);
 
     const form = new FormData();
     form.append('base_image', baseRender);
     form.append('style_prompt', style.prompt);
-    if (bom?.material_summary) form.append('material_summary', bom.material_summary);
+    if (bom?.bom.material_summary) form.append('material_summary', bom.bom.material_summary);
 
     const res = await fetch('/api/restyle', { method: 'POST', body: form });
     const data = await res.json() as RenderResponse;
@@ -854,7 +1024,7 @@ async function regenerateRender(style: StylePreset): Promise<void> {
     renderCache.set(style.id, data.render_url);
     updateStyleCard(style.id, data.render_url);
 
-    showResultRaw(data.render_url, style, bom ?? null);
+    showResultRaw(data.render_url, style, bom);
   } catch {
     showError(t('error.restyle'));
   }
@@ -1175,12 +1345,15 @@ async function tryLoadFromShareLink(): Promise<boolean> {
     // Hydrate session state from the snapshot. We treat the shared payload
     // as if it were a freshly generated result — same caches, same render
     // pipeline state — minus the original floor-plan File which the
-    // recipient doesn't have.
+    // recipient doesn't have. The shared payload's room areas already
+    // reflect any edits the original author made, so we treat them as the
+    // baseline for further edits in this session.
     currentAnalysis = data.analysis;
-    currentBom = data.bom;
     baseRender = data.render_url;
     renderCache.set(data.style_id, data.render_url);
-    bomCache.set(data.style_id, data.bom);
+    const baseAreas = snapshotAreas(data.analysis.rooms);
+    const cached: CachedBom = { bom: data.bom, baseAreas };
+    bomCache.set(data.style_id, cached);
 
     const restoredStyle: StylePreset = {
       id: data.style_id,
@@ -1192,7 +1365,7 @@ async function tryLoadFromShareLink(): Promise<boolean> {
     };
 
     isSharedView = true;
-    showResultRaw(data.render_url, restoredStyle, data.bom);
+    showResultRaw(data.render_url, restoredStyle, cached);
     applySharedViewChrome();
     return true;
   } catch {
