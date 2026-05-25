@@ -79,6 +79,35 @@ Colors: living=#E8D5B7, bedroom=#B7C4E8, kitchen=#E8E4B7, bathroom=#B7E8E4,
 IMPORTANT: All room labels MUST be in English, even if the floor plan has labels in another language. Translate them.`;
 
 // ─── Gemini: floor-plan → first render ─────────────────────────────────────
+const GRID_COLS = 12;
+const GRID_ROWS = 8;
+
+// 1-9, then A-Z. Floor plans rarely exceed 9 rooms; the letters cover the rest.
+function roomMarker(i: number): string {
+  if (i < 9) return String(i + 1);
+  return String.fromCharCode('A'.charCodeAt(0) + (i - 9));
+}
+
+// Project the normalized room boxes onto an ASCII grid so Gemini gets a quick
+// pictorial reference alongside the exact coordinates. Last-write-wins on
+// overlaps — the textual coords remain the authoritative layout source.
+function buildAsciiGrid(rooms: RoomLike[]): string {
+  const grid: string[][] = Array.from({ length: GRID_ROWS }, () =>
+    Array.from({ length: GRID_COLS }, () => '.'),
+  );
+  rooms.forEach((room, i) => {
+    const marker = roomMarker(i);
+    const c0 = Math.max(0, Math.floor(room.x * GRID_COLS));
+    const c1 = Math.min(GRID_COLS, Math.ceil((room.x + room.width) * GRID_COLS));
+    const r0 = Math.max(0, Math.floor(room.y * GRID_ROWS));
+    const r1 = Math.min(GRID_ROWS, Math.ceil((room.y + room.depth) * GRID_ROWS));
+    for (let r = r0; r < r1; r++) {
+      for (let c = c0; c < c1; c++) grid[r][c] = marker;
+    }
+  });
+  return grid.map((row) => row.join('')).join('\n');
+}
+
 export function buildBasePrompt(
   rooms: RoomLike[],
   stylePrompt: string,
@@ -86,15 +115,18 @@ export function buildBasePrompt(
 ): string {
   const total = rooms.length;
 
-  const roomDescriptions = rooms.map((room) => {
-    const cx = room.x + room.width / 2;
-    const cy = room.y + room.depth / 2;
-    const hPos = cx < 0.35 ? 'left' : cx > 0.65 ? 'right' : 'center';
-    const vPos = cy < 0.35 ? 'top' : cy > 0.65 ? 'bottom' : 'middle';
-    const area = room.width * room.depth;
-    const size = area > 0.1 ? 'large' : area < 0.04 ? 'small' : 'medium';
-    return `- ${room.label} (${size}, at ${vPos}-${hPos} of the plan)`;
+  // Exact normalized coordinates — no more vague "large, at top-left" hints.
+  // The reference image already has the boxes drawn; this text is the
+  // ground-truth backup if Gemini can't read the overlay precisely.
+  const roomDescriptions = rooms.map((room, i) => {
+    const x0 = room.x.toFixed(2);
+    const x1 = (room.x + room.width).toFixed(2);
+    const y0 = room.y.toFixed(2);
+    const y1 = (room.y + room.depth).toFixed(2);
+    return `  [${roomMarker(i)}] ${room.label}: x ${x0}–${x1}, y ${y0}–${y1}`;
   }).join('\n');
+
+  const grid = buildAsciiGrid(rooms);
 
   // When the recommend endpoint has run, the BOM's material summary is the
   // ground-truth list of finishes the user is paying for — make Gemini honour
@@ -105,18 +137,24 @@ export function buildBasePrompt(
 
   return `Generate a photorealistic isometric 3D cutaway rendering of this apartment floor plan.
 
+The reference image shows the floor plan with each room outlined and labelled — preserve those exact boundaries, sizes, and positions in the render.
+
+COORDINATE SYSTEM: image is a 1.0 × 1.0 grid. x = 0 is left, x = 1 is right; y = 0 is top, y = 1 is bottom.
+
 The apartment has exactly ${total} rooms:
 ${roomDescriptions}
+
+LAYOUT GRID (${GRID_COLS}×${GRID_ROWS}, '.' = empty, each digit/letter = the room with that marker above):
+${grid}
 
 INTERIOR DESIGN STYLE:
 ${stylePrompt}
 ${materialBlock}
 REQUIREMENTS:
 - Isometric view from above at a 45-degree angle, no roof, all rooms visible.
-- Show exactly ${total} rooms matching the floor plan layout — no more, no less.
+- Show exactly ${total} rooms; their relative sizes and positions must match the coordinates and grid above — do not invent, merge, or omit rooms.
 - Add furniture appropriate to each room type.
-- Professional architectural rendering, high quality, detailed.
-- The layout must match the original floor plan.`;
+- Professional architectural rendering, high quality, detailed.`;
 }
 
 // ─── Claude: rooms + style → SCG product BOM ───────────────────────────────

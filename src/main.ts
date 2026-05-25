@@ -38,6 +38,7 @@ import { getStylePresets, createCustomStyle, createRandomStyle } from './styles'
 import { getQuizQuestions, calculateResult, getMaxScore, buildAnswerSummary, type QuizResult } from './quiz';
 import { t, getLang, setLang, onLangChange } from './i18n';
 import { resizeImageFile } from './lib/resize';
+import { annotateFloorPlan } from './lib/annotate';
 import { FloorPlanCanvas } from './lib/draw';
 import type { StylePreset, AnalyzeResponse, RenderResponse, RecommendResponse, BomLine, RoomInfo, SharePayload, ShareResponse } from './types';
 
@@ -457,10 +458,12 @@ async function generateFirstRender(style: StylePreset): Promise<void> {
     updateLoadingText(`${style.label}`, t('loading.generating'));
     setLoadingSubtextRotation(getRenderTips(t('loading.generating')));
 
-    // Resize down to 512px for the Gemini call (same as the old Pillow path).
-    const resized = await resizeImageFile(uploadedFile, GENERATE_MAX_SIZE);
+    // Send Gemini an annotated guide image (room boxes + labels drawn on
+    // the plan) instead of the raw upload. This anchors the layout visually
+    // — Gemini no longer has to interpret room boundaries from a noisy plan.
+    const guide = await annotateFloorPlan(uploadedFile, currentAnalysis.rooms, GENERATE_MAX_SIZE);
     const form = new FormData();
-    form.append('file', resized);
+    form.append('file', guide);
     form.append('style_prompt', style.prompt);
     form.append('room_data', JSON.stringify(currentAnalysis));
     if (bom?.bom.material_summary) form.append('material_summary', bom.bom.material_summary);
