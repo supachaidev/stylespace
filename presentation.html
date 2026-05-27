@@ -646,6 +646,9 @@
     align-items: center;
     text-align: center;
   }
+  .closing-slide .slide-inner {
+    align-items: center;
+  }
   .closing-quote {
     font-size: clamp(28px, 3.4vw, 44px);
     line-height: 1.35;
@@ -738,11 +741,14 @@
   /* Print hint */
   .print-hint {
     position: fixed;
-    bottom: 16px;
-    right: 32px;
+    bottom: 18px;
+    left: 50%;
+    transform: translateX(-50%);
     font-size: 11px;
     color: var(--text-3);
     font-family: 'JetBrains Mono', monospace;
+    pointer-events: none;
+    z-index: 51;
   }
 
   /* Responsive */
@@ -771,7 +777,7 @@
       <div class="title-meta">
         <div><span class="key">Presented by</span><span class="val">Supachai · BU Senior Project</span></div>
         <div><span class="key">For</span><span class="val">SCG · CTO Review</span></div>
-        <div><span class="key">Status</span><span class="val">Live demo · Cloudflare deployment</span></div>
+        <div><span class="key">Status</span><span class="val">Deployed on Cloudflare · live demo today</span></div>
       </div>
     </div>
   </section>
@@ -856,14 +862,13 @@
           <div class="sub">Every entry has a <code>source_url</code> for audit</div>
         </div>
         <div class="stat-tile">
-          <div class="v">THB</div>
-          <div class="k">Native currency</div>
-          <div class="sub">Sourced 2026-05-01 from Thai retailers</div>
+          <div class="v">4</div>
+          <div class="k">Thai retailers</div>
+          <div class="sub">HomePro · OneStockHome · COTTO Life · Thaiwatsadu</div>
         </div>
       </div>
       <p class="lede" style="margin-top:32px;font-size:18px">
-        <strong>Retailers covered:</strong>
-        HomePro · OneStockHome · COTTO Life · Thaiwatsadu.
+        Prices in THB, sourced 2026-05-01. Every entry carries an audit-ready <code>source_url</code>.
       </p>
     </div>
   </section>
@@ -1024,17 +1029,17 @@
         <div class="card">
           <div class="label">Cost</div>
           <div class="num small">$0.06–0.10</div>
-          <p>Per fresh render (incl. verify pass)</p>
+          <p>Fresh render, incl. verify pass</p>
         </div>
         <div class="card">
-          <div class="label">Cost</div>
-          <div class="num small">~$0.005</div>
-          <p>Verify pass overhead</p>
+          <div class="label">Time</div>
+          <div class="num small">~30s</div>
+          <p>End-to-end on a cold request</p>
         </div>
         <div class="card">
           <div class="label">Cost</div>
           <div class="num small">~$0</div>
-          <p>Cached restyle</p>
+          <p>Cached restyle, instant</p>
         </div>
       </div>
     </div>
@@ -1073,7 +1078,7 @@
             <div class="v-sub">Below threshold → Gemini regenerates once with corrective feedback</div>
           </li>
         </ol>
-        <div class="v-retry">Verify failures are non-fatal · the original render ships if Claude can't be reached</div>
+        <div class="v-retry">Verify is non-fatal · if Claude is unreachable, the original render ships</div>
       </div>
 
       <div class="grid cols-3" style="margin-top:32px">
@@ -1093,76 +1098,7 @@
     </div>
   </section>
 
-  <!-- ============ SLIDE 9: POLISH ============ -->
-  <section class="slide">
-    <div class="slide-inner">
-      <span class="eyebrow">Polish · what the CTO will notice</span>
-      <h2>The 1% details that make the demo land.</h2>
-
-      <div class="pills">
-        <span class="pill"><span class="check">✓</span> Bilingual TH/EN everywhere</span>
-        <span class="pill"><span class="check">✓</span> Live price rescaling on m² edit</span>
-        <span class="pill"><span class="check">✓</span> Gradient thumbnails before render, real swatches after</span>
-        <span class="pill"><span class="check">✓</span> "Made for You" custom style from quiz</span>
-        <span class="pill"><span class="check">✓</span> Persistent render history (KV)</span>
-        <span class="pill"><span class="check">✓</span> Public share links via <code>/api/share</code></span>
-        <span class="pill"><span class="check">✓</span> Light / dark theme toggle</span>
-        <span class="pill"><span class="check">✓</span> Mobile-responsive overflow menus</span>
-        <span class="pill"><span class="check">✓</span> Demo-safe fallbacks on every endpoint</span>
-      </div>
-
-      <h3 style="margin-top:40px;font-size:13px;text-transform:uppercase;letter-spacing:0.12em;color:var(--text-3)">Most recent push · <code>layout-accuracy</code></h3>
-      <div class="pills">
-        <span class="pill layout"><span class="check">★</span> Schematic-based layout anchoring</span>
-        <span class="pill layout"><span class="check">★</span> Coordinate-precise prompting (12×8 grid)</span>
-        <span class="pill layout"><span class="check">★</span> Outline-preserving analyze prompt</span>
-        <span class="pill layout"><span class="check">★</span> Verify-and-retry loop</span>
-        <span class="pill layout"><span class="check">★</span> Honest "design inspiration" framing</span>
-      </div>
-    </div>
-  </section>
-
-  <!-- ============ SLIDE 10: WHAT'S REAL VS MOCKED ============ -->
-  <section class="slide">
-    <div class="slide-inner">
-      <span class="eyebrow">What's real vs. what's mocked</span>
-      <h2>Nothing in the demo path is a mock.</h2>
-
-      <div class="status-table">
-        <div class="status-row">
-          <span class="what">Floor plan analysis</span>
-          <span class="status-badge real">Real · live Claude Vision</span>
-        </div>
-        <div class="status-row">
-          <span class="what">SCG product catalog</span>
-          <span class="status-badge real">Real · 24 SKUs, 18 prices verified</span>
-        </div>
-        <div class="status-row">
-          <span class="what">Product recommendation</span>
-          <span class="status-badge real">Real · live Claude reasoning</span>
-        </div>
-        <div class="status-row">
-          <span class="what">Render generation</span>
-          <span class="status-badge real">Real · live Gemini 2.5 Flash Image</span>
-        </div>
-        <div class="status-row">
-          <span class="what">Style restyle</span>
-          <span class="status-badge real">Real · live Gemini, KV cached</span>
-        </div>
-        <div class="status-row">
-          <span class="what">Prices</span>
-          <span class="status-badge real">Real · THB, sourced 2026-05-01</span>
-        </div>
-      </div>
-
-      <p class="lede" style="margin-top:32px;font-size:16px">
-        Retailer sources: <strong>HomePro · OneStockHome · COTTO Life · Thaiwatsadu</strong>.
-        Every catalog entry has an audit-ready <code>source_url</code>.
-      </p>
-    </div>
-  </section>
-
-  <!-- ============ SLIDE 11: ROADMAP ============ -->
+  <!-- ============ SLIDE 9: ROADMAP ============ -->
   <section class="slide">
     <div class="slide-inner">
       <span class="eyebrow">Roadmap · what I'd build next with SCG</span>
@@ -1171,15 +1107,15 @@
       <div class="roadmap">
         <div class="roadmap-hero">
           <span class="badge">Next milestone · ~2 weeks</span>
-          <h3>CAD-grade layout fidelity via in-browser 3D extrusion</h3>
+          <h3>Higher layout fidelity via in-browser 3D extrusion</h3>
           <p>
-            Today the pipeline is <em>schematic → Gemini interpretation</em>.
-            The next step is <em>schematic → deterministic Three.js scene → Gemini-textured surfaces</em>.
-            Every wall lands in the right place because we put it there.
-            Gemini's role narrows from "interpret a plan" to "generate a texture for this surface" — what image-gen models are actually good at.
+            <strong>Phase 1 — this sprint:</strong> extrude Claude's room coords into a deterministic Three.js scene, render isometrically client-side, and pass that as Gemini's base image. Wall positions are anchored by geometry; Gemini's job narrows to materials, lighting, and furnishing.
+          </p>
+          <p style="margin-top:10px">
+            <strong>Phase 2 — later:</strong> render each surface independently and composite back in Three.js. Bigger lift (lighting, seams, shadow baking), but pushes structural drift toward zero.
           </p>
           <div class="metric">
-            <div><span class="k">Layout match</span><span class="v">70–80% → 95%+</span></div>
+            <div><span class="k">Layout match · phase 1</span><span class="v">70–80% → 85–90%</span></div>
             <div><span class="k">Per-request cost</span><span class="v">no change</span></div>
             <div><span class="k">Where it runs</span><span class="v">100% client-side</span></div>
           </div>
@@ -1201,7 +1137,7 @@
     </div>
   </section>
 
-  <!-- ============ SLIDE 12: CLOSING ============ -->
+  <!-- ============ SLIDE 10: CLOSING ============ -->
   <section class="slide closing-slide">
     <div class="slide-inner">
       <span class="eyebrow" style="justify-content:center;margin:0 auto 28px">Thank you</span>
