@@ -1,0 +1,1294 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>StyleSpace — SCG Presentation</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: #0a0d14;
+    --bg-2: #11151f;
+    --surface: #161b27;
+    --surface-2: #1d2333;
+    --border: #252b3d;
+    --border-strong: #323a52;
+    --text: #f1f5f9;
+    --text-2: #a3aec3;
+    --text-3: #6b7693;
+    --accent: #ff6a3d;
+    --accent-2: #ffb072;
+    --accent-soft: rgba(255, 106, 61, 0.12);
+    --good: #4ade80;
+    --warn: #fbbf24;
+    --info: #60a5fa;
+  }
+
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', -apple-system, system-ui, sans-serif;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+    overflow: hidden;
+    height: 100vh;
+    height: 100dvh;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Subtle gradient mesh background */
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(900px 600px at 12% 8%, rgba(255, 106, 61, 0.08), transparent 60%),
+      radial-gradient(700px 500px at 92% 95%, rgba(96, 165, 250, 0.06), transparent 60%),
+      radial-gradient(500px 400px at 50% 50%, rgba(255, 176, 114, 0.03), transparent 60%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* Progress bar */
+  .progress {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: rgba(255,255,255,0.04);
+    z-index: 100;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--accent-2));
+    transition: width 320ms cubic-bezier(0.22, 1, 0.36, 1);
+    box-shadow: 0 0 12px rgba(255, 106, 61, 0.6);
+  }
+
+  /* Slide deck */
+  .deck {
+    position: relative;
+    height: 100vh;
+    height: 100dvh;
+    width: 100vw;
+    overflow: hidden;
+    z-index: 1;
+  }
+
+  .slide {
+    position: absolute;
+    inset: 0;
+    padding: 64px 88px 88px;
+    display: flex;
+    flex-direction: column;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(12px);
+    transition: opacity 380ms ease, transform 380ms cubic-bezier(0.22, 1, 0.36, 1);
+    overflow-y: auto;
+  }
+  .slide.active {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(0);
+  }
+  .slide-inner {
+    width: 100%;
+    max-width: 1280px;
+    margin: 0 auto;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+
+  /* Slide chrome */
+  .eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--accent);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-bottom: 22px;
+  }
+  .eyebrow::before {
+    content: "";
+    display: inline-block;
+    width: 24px; height: 1px;
+    background: var(--accent);
+  }
+
+  h1, h2, h3 { margin: 0; line-height: 1.1; letter-spacing: -0.02em; }
+  h1 {
+    font-size: clamp(48px, 6vw, 88px);
+    font-weight: 800;
+    letter-spacing: -0.035em;
+  }
+  h2 {
+    font-size: clamp(36px, 4vw, 54px);
+    font-weight: 700;
+    margin-bottom: 12px;
+  }
+  h3 {
+    font-size: 20px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+  p, li { color: var(--text-2); line-height: 1.55; font-size: 17px; }
+  .lede {
+    font-size: 22px;
+    color: var(--text-2);
+    line-height: 1.5;
+    max-width: 900px;
+    margin: 18px 0 0;
+  }
+  strong { color: var(--text); font-weight: 600; }
+  code, .mono {
+    font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+    font-size: 0.92em;
+  }
+
+  .gradient-text {
+    background: linear-gradient(135deg, #fff 0%, #ffb072 50%, #ff6a3d 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  /* Footer / slide counter */
+  .footer {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    padding: 16px 32px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 12px;
+    color: var(--text-3);
+    z-index: 50;
+    pointer-events: none;
+  }
+  .footer .left, .footer .right { pointer-events: auto; }
+  .nav-btns {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+  }
+  .nav-btn {
+    background: transparent;
+    color: var(--text-3);
+    border: 1px solid var(--border);
+    width: 28px; height: 28px;
+    border-radius: 6px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 160ms ease;
+    font-size: 14px;
+  }
+  .nav-btn:hover {
+    color: var(--text);
+    border-color: var(--border-strong);
+    background: var(--surface);
+  }
+  .counter {
+    font-family: 'JetBrains Mono', monospace;
+    margin: 0 12px;
+    color: var(--text-2);
+  }
+
+  /* Title slide */
+  .title-slide {
+    justify-content: center;
+    align-items: flex-start;
+  }
+  .brand-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 99px;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-2);
+    margin-bottom: 28px;
+  }
+  .brand-tag .dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 10px var(--accent);
+  }
+  .title-tagline {
+    margin-top: 28px;
+    font-size: 24px;
+    line-height: 1.45;
+    color: var(--text-2);
+    max-width: 820px;
+  }
+  .title-meta {
+    margin-top: 64px;
+    display: flex;
+    gap: 56px;
+    flex-wrap: wrap;
+  }
+  .title-meta div { display: flex; flex-direction: column; gap: 4px; }
+  .title-meta .key {
+    font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em;
+    color: var(--text-3);
+  }
+  .title-meta .val { font-size: 15px; color: var(--text); font-weight: 500; }
+
+  /* Generic cards / grids */
+  .grid {
+    display: grid;
+    gap: 16px;
+    margin-top: 28px;
+  }
+  .grid.cols-2 { grid-template-columns: 1fr 1fr; }
+  .grid.cols-3 { grid-template-columns: repeat(3, 1fr); }
+  .grid.cols-4 { grid-template-columns: repeat(4, 1fr); }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 22px 24px;
+    transition: border-color 200ms ease, transform 200ms ease;
+  }
+  .card:hover { border-color: var(--border-strong); }
+  .card h3 { color: var(--text); margin-bottom: 8px; }
+  .card .num {
+    font-size: 44px;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    background: linear-gradient(135deg, #fff, var(--accent-2));
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    line-height: 1;
+  }
+  .card .num.small { font-size: 28px; }
+  .card .label {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-3);
+    margin-bottom: 12px;
+  }
+  .card p { font-size: 15px; margin: 8px 0 0; }
+
+  /* Comparison table */
+  .compare {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+    margin-top: 24px;
+  }
+  .compare-head {
+    padding: 14px 22px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    background: var(--surface-2);
+    border-bottom: 1px solid var(--border);
+  }
+  .compare-head.left { color: var(--text-3); }
+  .compare-head.right { color: var(--accent); border-left: 1px solid var(--border); }
+  .compare-row {
+    padding: 16px 22px;
+    font-size: 15px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text-2);
+  }
+  .compare-row.right {
+    color: var(--text);
+    border-left: 1px solid var(--border);
+  }
+  .compare-row:nth-last-child(-n+2) { border-bottom: none; }
+
+  /* Flow diagram */
+  .flow {
+    display: flex;
+    align-items: stretch;
+    gap: 12px;
+    margin-top: 28px;
+    flex-wrap: wrap;
+  }
+  .flow-step {
+    flex: 1;
+    min-width: 130px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    position: relative;
+  }
+  .flow-step .step-n {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--accent);
+    margin-bottom: 8px;
+  }
+  .flow-step h3 { font-size: 15px; margin: 0 0 6px; }
+  .flow-step p { font-size: 13px; margin: 0; color: var(--text-3); }
+  .flow-arrow {
+    align-self: center;
+    color: var(--text-3);
+    font-size: 20px;
+  }
+
+  /* Architecture box */
+  .arch {
+    margin-top: 28px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    align-items: stretch;
+  }
+  .arch-col h3 { font-size: 14px; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 12px; }
+  .arch-stack {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .arch-box {
+    background: var(--bg-2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 14px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 14px;
+  }
+  .arch-box .name { color: var(--text); font-weight: 500; }
+  .arch-box .tech { color: var(--text-3); font-family: 'JetBrains Mono', monospace; font-size: 12px; }
+  .arch-box.accent { border-color: var(--accent); background: var(--accent-soft); }
+  .arch-box.accent .name { color: var(--accent-2); }
+
+  /* Pipeline cards */
+  .pipeline {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    margin-top: 24px;
+  }
+  .pipe-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 20px 22px;
+    position: relative;
+  }
+  .pipe-card .call-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 10px;
+    background: var(--bg-2);
+    border: 1px solid var(--border);
+    border-radius: 99px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text-3);
+    margin-bottom: 10px;
+  }
+  .pipe-card .provider {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-left: 4px;
+  }
+  .provider.claude { background: rgba(247, 168, 90, 0.15); color: #f7a85a; }
+  .provider.gemini { background: rgba(96, 165, 250, 0.15); color: #60a5fa; }
+  .pipe-card h3 { color: var(--text); margin: 6px 0 8px; font-size: 17px; }
+  .pipe-card p { font-size: 14px; margin: 0; color: var(--text-2); }
+
+  /* Verify loop diagram */
+  .verify-loop {
+    margin-top: 28px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 28px;
+  }
+  .v-flow {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 14px;
+  }
+  .v-step {
+    background: var(--bg-2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px;
+    text-align: center;
+    position: relative;
+  }
+  /* Arrow between steps — points right by default */
+  .v-step::after {
+    content: "→";
+    position: absolute;
+    right: -14px;
+    top: 50%;
+    transform: translate(50%, -50%);
+    color: var(--text-3);
+    font-size: 18px;
+    line-height: 1;
+    pointer-events: none;
+    z-index: 1;
+  }
+  .v-step:last-child::after { content: none; }
+
+  .v-step .v-tag {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--accent);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 6px;
+  }
+  .v-step .v-title { font-size: 14px; color: var(--text); font-weight: 500; margin-bottom: 4px; }
+  .v-step .v-sub { font-size: 11px; color: var(--text-3); }
+  .v-retry {
+    margin-top: 22px;
+    padding-top: 18px;
+    border-top: 1px solid var(--border);
+    text-align: center;
+    font-size: 13px;
+    color: var(--accent);
+    font-style: italic;
+  }
+
+  /* Mid-width: 2×2 grid. Items 1,3 keep → arrows; item 2 wraps with ↓. */
+  @media (max-width: 1100px) {
+    .v-flow {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 28px 14px;
+    }
+    .v-step:nth-child(2)::after {
+      content: "↓";
+      right: 50%;
+      top: auto;
+      bottom: -22px;
+      transform: translate(50%, 0);
+    }
+  }
+
+  /* Narrow: stacked column, all arrows point down. */
+  @media (max-width: 640px) {
+    .v-flow {
+      grid-template-columns: 1fr;
+      gap: 28px;
+    }
+    .v-step::after {
+      content: "↓";
+      right: 50%;
+      top: auto;
+      bottom: -22px;
+      transform: translate(50%, 0);
+    }
+  }
+
+  /* Feature pills */
+  .pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 24px;
+  }
+  .pill {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 99px;
+    padding: 10px 18px;
+    font-size: 14px;
+    color: var(--text);
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .pill .check {
+    color: var(--good);
+    font-weight: bold;
+  }
+  .pill.layout { border-color: var(--accent); background: var(--accent-soft); }
+  .pill.layout .check { color: var(--accent); }
+
+  /* Status table */
+  .status-table {
+    margin-top: 24px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+  }
+  .status-row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    padding: 14px 22px;
+    border-bottom: 1px solid var(--border);
+    align-items: center;
+  }
+  .status-row:last-child { border-bottom: none; }
+  .status-row .what { color: var(--text); font-size: 15px; }
+  .status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 99px;
+    font-size: 12px;
+    font-weight: 600;
+    background: rgba(74, 222, 128, 0.12);
+    color: var(--good);
+  }
+  .status-badge.real::before {
+    content: ""; width: 6px; height: 6px; border-radius: 50%;
+    background: var(--good); box-shadow: 0 0 8px var(--good);
+  }
+
+  /* Roadmap */
+  .roadmap {
+    margin-top: 24px;
+    display: grid;
+    grid-template-columns: 1.4fr 1fr;
+    gap: 18px;
+  }
+  .roadmap-hero {
+    background: linear-gradient(135deg, rgba(255, 106, 61, 0.12), rgba(255, 176, 114, 0.04));
+    border: 1px solid var(--accent);
+    border-radius: 16px;
+    padding: 28px;
+  }
+  .roadmap-hero .badge {
+    display: inline-block;
+    background: var(--accent);
+    color: #1a0f08;
+    padding: 4px 10px;
+    border-radius: 99px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 12px;
+  }
+  .roadmap-hero h3 { font-size: 22px; color: var(--text); margin-bottom: 8px; }
+  .roadmap-hero p { font-size: 14px; line-height: 1.55; color: var(--text-2); }
+  .roadmap-hero .metric {
+    margin-top: 14px;
+    display: flex;
+    gap: 18px;
+    padding-top: 14px;
+    border-top: 1px solid rgba(255, 106, 61, 0.25);
+  }
+  .roadmap-hero .metric div { display: flex; flex-direction: column; }
+  .roadmap-hero .metric .k { font-size: 11px; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.1em; }
+  .roadmap-hero .metric .v { font-size: 18px; color: var(--accent-2); font-weight: 600; font-family: 'JetBrains Mono', monospace; }
+
+  .roadmap-list {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 22px;
+  }
+  .roadmap-list h3 { font-size: 13px; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 14px; }
+  .roadmap-list ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+  .roadmap-list li {
+    padding: 9px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 14px;
+    color: var(--text-2);
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+  }
+  .roadmap-list li:last-child { border-bottom: none; }
+  .roadmap-list li::before {
+    content: "→";
+    color: var(--accent);
+    font-family: 'JetBrains Mono', monospace;
+    flex-shrink: 0;
+  }
+
+  /* Closing slide */
+  .closing-slide {
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+  }
+  .closing-quote {
+    font-size: clamp(28px, 3.4vw, 44px);
+    line-height: 1.35;
+    color: var(--text);
+    max-width: 1000px;
+    font-weight: 500;
+    letter-spacing: -0.015em;
+  }
+  .closing-quote .accent { color: var(--accent); }
+  .closing-meta {
+    margin-top: 56px;
+    color: var(--text-3);
+    font-size: 14px;
+  }
+
+  /* Stats grid for catalog */
+  .stat-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+    margin-top: 28px;
+  }
+  .stat-tile {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 22px;
+  }
+  .stat-tile .v {
+    font-size: 42px;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    color: var(--text);
+    line-height: 1;
+  }
+  .stat-tile .v .unit { font-size: 18px; color: var(--text-3); margin-left: 2px; }
+  .stat-tile .k {
+    margin-top: 10px;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-3);
+  }
+  .stat-tile .sub { margin-top: 6px; font-size: 13px; color: var(--text-2); }
+
+  /* Two-column for pitch */
+  .two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 32px;
+    margin-top: 32px;
+  }
+  .two-col .col h3 {
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--text-3);
+    margin-bottom: 16px;
+  }
+  .two-col .col.solution h3 { color: var(--accent); }
+  .two-col ol, .two-col ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    counter-reset: pitch;
+  }
+  .two-col li {
+    padding: 14px 16px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    font-size: 15px;
+    color: var(--text-2);
+    position: relative;
+  }
+  .two-col .solution li {
+    border-color: var(--border-strong);
+    color: var(--text);
+  }
+
+  /* Scrollbars */
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--border-strong); }
+
+  /* Print hint */
+  .print-hint {
+    position: fixed;
+    bottom: 16px;
+    right: 32px;
+    font-size: 11px;
+    color: var(--text-3);
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  /* Responsive */
+  @media (max-width: 900px) {
+    .slide { padding: 40px 24px 80px; }
+    .grid.cols-2, .grid.cols-3, .grid.cols-4 { grid-template-columns: 1fr; }
+    .compare, .two-col, .arch, .pipeline, .roadmap, .stat-row { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="progress"><div class="progress-fill" id="progress"></div></div>
+
+<div class="deck" id="deck">
+
+  <!-- ============ SLIDE 1: TITLE ============ -->
+  <section class="slide title-slide active">
+    <div class="slide-inner">
+      <span class="brand-tag"><span class="dot"></span> "All in" × SCG · Bangkok University Senior Project</span>
+      <h1 class="gradient-text">StyleSpace</h1>
+      <p class="title-tagline">
+        Upload a floor plan. Get a photorealistic isometric render styled with
+        <strong>real SCG products</strong> — in under a minute.
+      </p>
+      <div class="title-meta">
+        <div><span class="key">Presented by</span><span class="val">Supachai · BU Senior Project</span></div>
+        <div><span class="key">For</span><span class="val">SCG · CTO Review</span></div>
+        <div><span class="key">Status</span><span class="val">Live demo · Cloudflare deployment</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ SLIDE 2: THE PITCH ============ -->
+  <section class="slide">
+    <div class="slide-inner">
+      <span class="eyebrow">The Pitch · 30 seconds</span>
+      <h2>An SCG customer planning a renovation today<br/>has to <span class="gradient-text">guess</span>.</h2>
+      <div class="two-col">
+        <div class="col">
+          <h3>Today</h3>
+          <ol>
+            <li>Find a designer, or browse a showroom.</li>
+            <li>Imagine what COTTO tiles, SCG roofing, or SmartBoard will look like in <em>their</em> home.</li>
+            <li>Hope the colors and textures actually match.</li>
+          </ol>
+        </div>
+        <div class="col solution">
+          <h3>With StyleSpace</h3>
+          <ul>
+            <li>Upload a 2D floor plan + a 6-question lifestyle quiz.</li>
+            <li>In <strong>~30 seconds</strong>: a photorealistic isometric render of <em>their</em> space, finished with real SCG SKUs.</li>
+            <li>A per-room bill of materials with verified THB prices and links straight to the retailer.</li>
+          </ul>
+        </div>
+      </div>
+      <p class="lede" style="margin-top:32px">
+        Restyle the <em>same</em> space in 6 different design looks — every restyle re-recommends the SCG product mix to match.
+        <strong>For SCG, every render is a personalized product catalog for a specific customer's home.</strong>
+      </p>
+    </div>
+  </section>
+
+  <!-- ============ SLIDE 3: WHY THIS MATTERS TO SCG ============ -->
+  <section class="slide">
+    <div class="slide-inner">
+      <span class="eyebrow">Why this matters to SCG</span>
+      <h2>Five SCG problems, one app.</h2>
+      <div class="compare">
+        <div class="compare-head left">Problem SCG faces today</div>
+        <div class="compare-head right">What StyleSpace does</div>
+
+        <div class="compare-row">Customers can't visualize products in their own space</div>
+        <div class="compare-row right">Renders the customer's <strong>actual floor plan</strong> with SCG materials applied</div>
+
+        <div class="compare-row">Catalogs are static, generic, overwhelming</div>
+        <div class="compare-row right">Generates a personalized BOM — <strong>5–15 SKUs</strong> scoped to the rooms in the plan</div>
+
+        <div class="compare-row">No direct path from inspiration → purchase</div>
+        <div class="compare-row right">Every product card links back to its <strong>HomePro / OneStockHome / COTTO Life</strong> page</div>
+
+        <div class="compare-row">Hard to demonstrate range across brands</div>
+        <div class="compare-row right">One render touches <strong>COTTO + SCG roofing + SmartBoard + TOA + BEGER</strong></div>
+
+        <div class="compare-row">Style preferences hard to capture in a sales conversation</div>
+        <div class="compare-row right">The lifestyle quiz produces an <strong>explicit style fingerprint</strong>, ranked by % match</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ SLIDE 4: CATALOG STATS ============ -->
+  <section class="slide">
+    <div class="slide-inner">
+      <span class="eyebrow">The Catalog · <code>data/scg_catalog.json</code></span>
+      <h2>Nothing in the demo path is a mock.</h2>
+      <p class="lede">Real SKUs. Real prices. Verified against live retailer pages.</p>
+      <div class="stat-row">
+        <div class="stat-tile">
+          <div class="v">24</div>
+          <div class="k">Real SKUs</div>
+          <div class="sub">17 COTTO · 5 SCG · 1 TOA · 1 BEGER</div>
+        </div>
+        <div class="stat-tile">
+          <div class="v">18<span class="unit">/24</span></div>
+          <div class="k">Prices verified</div>
+          <div class="sub">The rest flagged as mid-market estimates</div>
+        </div>
+        <div class="stat-tile">
+          <div class="v">100<span class="unit">%</span></div>
+          <div class="k">Source-linked</div>
+          <div class="sub">Every entry has a <code>source_url</code> for audit</div>
+        </div>
+        <div class="stat-tile">
+          <div class="v">THB</div>
+          <div class="k">Native currency</div>
+          <div class="sub">Sourced 2026-05-01 from Thai retailers</div>
+        </div>
+      </div>
+      <p class="lede" style="margin-top:32px;font-size:18px">
+        <strong>Retailers covered:</strong>
+        HomePro · OneStockHome · COTTO Life · Thaiwatsadu.
+      </p>
+    </div>
+  </section>
+
+  <!-- ============ SLIDE 5: USER FLOW ============ -->
+  <section class="slide">
+    <div class="slide-inner">
+      <span class="eyebrow">The User Flow</span>
+      <h2>Upload → Quiz → Render → Restyle.</h2>
+      <p class="lede">No accounts, no installs, no waiting.</p>
+
+      <div class="flow">
+        <div class="flow-step">
+          <div class="step-n">01</div>
+          <h3>Upload</h3>
+          <p>Drop a JPG / PNG floor plan</p>
+        </div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-step">
+          <div class="step-n">02</div>
+          <h3>Quiz</h3>
+          <p>6 lifestyle questions</p>
+        </div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-step">
+          <div class="step-n">03</div>
+          <h3>Analyze</h3>
+          <p>Claude parses rooms</p>
+        </div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-step">
+          <div class="step-n">04</div>
+          <h3>Recommend</h3>
+          <p>Claude picks SCG BOM</p>
+        </div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-step">
+          <div class="step-n">05</div>
+          <h3>Render</h3>
+          <p>Gemini + Claude verify</p>
+        </div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-step">
+          <div class="step-n">06</div>
+          <h3>Restyle</h3>
+          <p>Same space, 6 looks</p>
+        </div>
+      </div>
+
+      <div class="grid cols-3" style="margin-top:36px">
+        <div class="card">
+          <div class="label">On screen</div>
+          <h3>Photorealistic render</h3>
+          <p>Isometric, lit, textured with the recommended SCG finishes.</p>
+        </div>
+        <div class="card">
+          <div class="label">On screen</div>
+          <h3>Editable BOM</h3>
+          <p>Per-room m² is editable — prices rescale live, no API call.</p>
+        </div>
+        <div class="card">
+          <div class="label">On screen</div>
+          <h3>Bilingual UI</h3>
+          <p>TH / EN toggle on quiz, BOM, rationale, error states.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ SLIDE 6: ARCHITECTURE ============ -->
+  <section class="slide">
+    <div class="slide-inner">
+      <span class="eyebrow">Architecture · 100% Cloudflare</span>
+      <h2>No servers. No Python. No Docker.</h2>
+      <p class="lede"><code>npm run deploy</code> ships it. Two API keys, one KV namespace — that's the entire operational footprint.</p>
+
+      <div class="arch">
+        <div class="arch-col">
+          <h3>Stack</h3>
+          <div class="arch-stack">
+            <div class="arch-box">
+              <span class="name">Browser</span>
+              <span class="tech">Vite + TS, ~1,900 LOC</span>
+            </div>
+            <div class="arch-box">
+              <span class="name">Cloudflare Pages</span>
+              <span class="tech">Static hosting, global CDN</span>
+            </div>
+            <div class="arch-box accent">
+              <span class="name">Pages Functions</span>
+              <span class="tech">Workers · /api/*.ts</span>
+            </div>
+            <div class="arch-box">
+              <span class="name">Cloudflare KV</span>
+              <span class="tech">Render + BOM cache</span>
+            </div>
+          </div>
+        </div>
+        <div class="arch-col">
+          <h3>AI Providers</h3>
+          <div class="arch-stack">
+            <div class="arch-box">
+              <span class="name">Anthropic Claude Sonnet 4</span>
+              <span class="tech">vision + reasoning</span>
+            </div>
+            <div class="arch-box">
+              <span class="name">Google Gemini 2.5 Flash Image</span>
+              <span class="tech">photoreal isometric output</span>
+            </div>
+            <div class="arch-box">
+              <span class="name">Browser Canvas resize</span>
+              <span class="tech">no server-side Pillow</span>
+            </div>
+            <div class="arch-box">
+              <span class="name">KV cache key</span>
+              <span class="tech">sha256(img)_sha256(prompt)</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <p class="lede" style="margin-top:28px;font-size:16px">
+        <strong>Quality bar:</strong> <code>npm run check</code> typechecks both the frontend and the Workers with zero errors. No <code>any</code> types. No dead code.
+      </p>
+    </div>
+  </section>
+
+  <!-- ============ SLIDE 7: AI PIPELINE ============ -->
+  <section class="slide">
+    <div class="slide-inner">
+      <span class="eyebrow">The AI Pipeline</span>
+      <h2>Each render is a sequenced, cached AI conversation.</h2>
+
+      <div class="pipeline">
+        <div class="pipe-card">
+          <span class="call-tag">CALL 1 · <code>/api/analyze</code> <span class="provider claude">Claude Vision</span></span>
+          <h3>Parse the floor plan</h3>
+          <p>Returns structured JSON: every room's type, dimensions, normalized coords, color swatch, wet/dry classification. Outline-preserving — L-shapes stay L-shaped.</p>
+        </div>
+        <div class="pipe-card">
+          <span class="call-tag">CALL 2 · <code>/api/recommend</code> <span class="provider claude">Claude Reasoning</span></span>
+          <h3>Pick the SCG BOM</h3>
+          <p>Reasons over the curated catalog. Returns <code>picks[]</code> with SKU, room_id, qty, bilingual rationale — plus a <code>material_summary</code> fed into the render prompt.</p>
+        </div>
+        <div class="pipe-card">
+          <span class="call-tag">CALL 3 · <code>/api/generate</code> <span class="provider gemini">Gemini</span> + <span class="provider claude">Claude Verify</span></span>
+          <h3>Render + verify + retry</h3>
+          <p>3-stage sub-pipeline: Gemini renders, Claude scores layout fidelity, Gemini retries once with corrective feedback if needed. See next slide.</p>
+        </div>
+        <div class="pipe-card">
+          <span class="call-tag">CALL 4 · <code>/api/restyle</code> <span class="provider gemini">Gemini</span></span>
+          <h3>Same layout, new look</h3>
+          <p>Same camera, same walls, different design language. KV-cached — a returning user pays <strong>~$0</strong> to flip between the 6 styles.</p>
+        </div>
+      </div>
+
+      <div class="grid cols-3" style="margin-top:28px">
+        <div class="card">
+          <div class="label">Cost</div>
+          <div class="num small">$0.06–0.10</div>
+          <p>Per fresh render (incl. verify pass)</p>
+        </div>
+        <div class="card">
+          <div class="label">Cost</div>
+          <div class="num small">~$0.005</div>
+          <p>Verify pass overhead</p>
+        </div>
+        <div class="card">
+          <div class="label">Cost</div>
+          <div class="num small">~$0</div>
+          <p>Cached restyle</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ SLIDE 8: VERIFY-AND-RETRY LOOP ============ -->
+  <section class="slide">
+    <div class="slide-inner">
+      <span class="eyebrow">Layout Fidelity · <code>layout-accuracy</code> branch</span>
+      <h2>Schematic → Render → Verify → Retry.</h2>
+      <p class="lede">
+        Image-gen models excel at materials, lighting, mood — but struggle with strict spatial constraints.
+        We extract maximum layout fidelity by giving Gemini a clean signal and grading its work.
+      </p>
+
+      <div class="verify-loop">
+        <ol class="v-flow">
+          <li class="v-step">
+            <div class="v-tag">3a · Generate</div>
+            <div class="v-title">Schematic</div>
+            <div class="v-sub">Color-block reference rendered client-side</div>
+          </li>
+          <li class="v-step">
+            <div class="v-tag">3a · Render</div>
+            <div class="v-title">Gemini render</div>
+            <div class="v-sub">Photoreal isometric output</div>
+          </li>
+          <li class="v-step">
+            <div class="v-tag">3b · Verify</div>
+            <div class="v-title">Claude scores</div>
+            <div class="v-sub">Layout fidelity JSON: room count, outline, missing rooms</div>
+          </li>
+          <li class="v-step">
+            <div class="v-tag">3c · Retry</div>
+            <div class="v-title">Conditional</div>
+            <div class="v-sub">Below threshold → Gemini regenerates once with corrective feedback</div>
+          </li>
+        </ol>
+        <div class="v-retry">Verify failures are non-fatal · the original render ships if Claude can't be reached</div>
+      </div>
+
+      <div class="grid cols-3" style="margin-top:32px">
+        <div class="card">
+          <h3>Schematic anchoring</h3>
+          <p>The noisy original plan no longer competes for Gemini's attention — it sees one unambiguous spatial signal.</p>
+        </div>
+        <div class="card">
+          <h3>Coordinate-precise prompting</h3>
+          <p>Exact normalized coords + a 12×8 ASCII grid, cross-referenced by room markers <code>[1]</code>, <code>[2]</code>, …</p>
+        </div>
+        <div class="card">
+          <h3>Honest framing</h3>
+          <p>Result page leads with <em>"Design inspiration for your space"</em> — no false expectation of CAD-grade reproduction.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ SLIDE 9: POLISH ============ -->
+  <section class="slide">
+    <div class="slide-inner">
+      <span class="eyebrow">Polish · what the CTO will notice</span>
+      <h2>The 1% details that make the demo land.</h2>
+
+      <div class="pills">
+        <span class="pill"><span class="check">✓</span> Bilingual TH/EN everywhere</span>
+        <span class="pill"><span class="check">✓</span> Live price rescaling on m² edit</span>
+        <span class="pill"><span class="check">✓</span> Gradient thumbnails before render, real swatches after</span>
+        <span class="pill"><span class="check">✓</span> "Made for You" custom style from quiz</span>
+        <span class="pill"><span class="check">✓</span> Persistent render history (KV)</span>
+        <span class="pill"><span class="check">✓</span> Public share links via <code>/api/share</code></span>
+        <span class="pill"><span class="check">✓</span> Light / dark theme toggle</span>
+        <span class="pill"><span class="check">✓</span> Mobile-responsive overflow menus</span>
+        <span class="pill"><span class="check">✓</span> Demo-safe fallbacks on every endpoint</span>
+      </div>
+
+      <h3 style="margin-top:40px;font-size:13px;text-transform:uppercase;letter-spacing:0.12em;color:var(--text-3)">Most recent push · <code>layout-accuracy</code></h3>
+      <div class="pills">
+        <span class="pill layout"><span class="check">★</span> Schematic-based layout anchoring</span>
+        <span class="pill layout"><span class="check">★</span> Coordinate-precise prompting (12×8 grid)</span>
+        <span class="pill layout"><span class="check">★</span> Outline-preserving analyze prompt</span>
+        <span class="pill layout"><span class="check">★</span> Verify-and-retry loop</span>
+        <span class="pill layout"><span class="check">★</span> Honest "design inspiration" framing</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ SLIDE 10: WHAT'S REAL VS MOCKED ============ -->
+  <section class="slide">
+    <div class="slide-inner">
+      <span class="eyebrow">What's real vs. what's mocked</span>
+      <h2>Nothing in the demo path is a mock.</h2>
+
+      <div class="status-table">
+        <div class="status-row">
+          <span class="what">Floor plan analysis</span>
+          <span class="status-badge real">Real · live Claude Vision</span>
+        </div>
+        <div class="status-row">
+          <span class="what">SCG product catalog</span>
+          <span class="status-badge real">Real · 24 SKUs, 18 prices verified</span>
+        </div>
+        <div class="status-row">
+          <span class="what">Product recommendation</span>
+          <span class="status-badge real">Real · live Claude reasoning</span>
+        </div>
+        <div class="status-row">
+          <span class="what">Render generation</span>
+          <span class="status-badge real">Real · live Gemini 2.5 Flash Image</span>
+        </div>
+        <div class="status-row">
+          <span class="what">Style restyle</span>
+          <span class="status-badge real">Real · live Gemini, KV cached</span>
+        </div>
+        <div class="status-row">
+          <span class="what">Prices</span>
+          <span class="status-badge real">Real · THB, sourced 2026-05-01</span>
+        </div>
+      </div>
+
+      <p class="lede" style="margin-top:32px;font-size:16px">
+        Retailer sources: <strong>HomePro · OneStockHome · COTTO Life · Thaiwatsadu</strong>.
+        Every catalog entry has an audit-ready <code>source_url</code>.
+      </p>
+    </div>
+  </section>
+
+  <!-- ============ SLIDE 11: ROADMAP ============ -->
+  <section class="slide">
+    <div class="slide-inner">
+      <span class="eyebrow">Roadmap · what I'd build next with SCG</span>
+      <h2>The next two weeks unlock dealer-grade trust.</h2>
+
+      <div class="roadmap">
+        <div class="roadmap-hero">
+          <span class="badge">Next milestone · ~2 weeks</span>
+          <h3>CAD-grade layout fidelity via in-browser 3D extrusion</h3>
+          <p>
+            Today the pipeline is <em>schematic → Gemini interpretation</em>.
+            The next step is <em>schematic → deterministic Three.js scene → Gemini-textured surfaces</em>.
+            Every wall lands in the right place because we put it there.
+            Gemini's role narrows from "interpret a plan" to "generate a texture for this surface" — what image-gen models are actually good at.
+          </p>
+          <div class="metric">
+            <div><span class="k">Layout match</span><span class="v">70–80% → 95%+</span></div>
+            <div><span class="k">Per-request cost</span><span class="v">no change</span></div>
+            <div><span class="k">Where it runs</span><span class="v">100% client-side</span></div>
+          </div>
+        </div>
+
+        <div class="roadmap-list">
+          <h3>Already architecture-ready</h3>
+          <ul>
+            <li>Showroom inventory hook — live SCG inventory API by postal code</li>
+            <li>"Send to dealer" lead capture — BOM → CRM webhook</li>
+            <li>Augmented catalog — furniture, lighting, outdoor</li>
+            <li>Save &amp; revisit — Cloudflare D1 user accounts</li>
+            <li>Render variants — 3 versions per style, user picks</li>
+            <li>Style transfer from a reference photo (e.g. Pinterest)</li>
+            <li>Layout-fidelity badge — surface the verify score on screen</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ SLIDE 12: CLOSING ============ -->
+  <section class="slide closing-slide">
+    <div class="slide-inner">
+      <span class="eyebrow" style="justify-content:center;margin:0 auto 28px">Thank you</span>
+      <p class="closing-quote">
+        StyleSpace turns any 2D floor plan into a <span class="accent">photorealistic 3D render</span>
+        finished with <span class="accent">real SCG products</span> —
+        giving every SCG customer a <span class="accent">personalized catalog</span> of their own home.
+      </p>
+      <div class="closing-meta">
+        Supachai · Bangkok University Senior Project · "All in" × SCG
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<div class="footer">
+  <div class="left"><strong style="color:var(--text-2);font-weight:500">StyleSpace</strong> · SCG CTO Review</div>
+  <div class="right">
+    <div class="nav-btns">
+      <button class="nav-btn" id="prev" aria-label="Previous">‹</button>
+      <span class="counter"><span id="cur">1</span> / <span id="total">12</span></span>
+      <button class="nav-btn" id="next" aria-label="Next">›</button>
+    </div>
+  </div>
+</div>
+
+<div class="print-hint">← → space · esc to home</div>
+
+<script>
+  const slides = Array.from(document.querySelectorAll('.slide'));
+  const progress = document.getElementById('progress');
+  const counter = document.getElementById('cur');
+  const total = document.getElementById('total');
+  const prevBtn = document.getElementById('prev');
+  const nextBtn = document.getElementById('next');
+
+  let idx = 0;
+  total.textContent = slides.length;
+
+  function go(n) {
+    idx = Math.max(0, Math.min(slides.length - 1, n));
+    slides.forEach((s, i) => s.classList.toggle('active', i === idx));
+    counter.textContent = idx + 1;
+    progress.style.width = ((idx + 1) / slides.length * 100) + '%';
+    // Sync URL hash for shareability
+    history.replaceState(null, '', '#' + (idx + 1));
+  }
+
+  // Init from hash
+  const initial = parseInt(location.hash.slice(1), 10);
+  go(Number.isFinite(initial) ? initial - 1 : 0);
+
+  prevBtn.addEventListener('click', () => go(idx - 1));
+  nextBtn.addEventListener('click', () => go(idx + 1));
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') {
+      e.preventDefault();
+      go(idx + 1);
+    } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
+      e.preventDefault();
+      go(idx - 1);
+    } else if (e.key === 'Home') {
+      go(0);
+    } else if (e.key === 'End') {
+      go(slides.length - 1);
+    } else if (e.key === 'Escape') {
+      go(0);
+    } else if (/^[0-9]$/.test(e.key)) {
+      const n = parseInt(e.key, 10);
+      if (n >= 1 && n <= slides.length) go(n - 1);
+    }
+  });
+
+  // Touch swipe
+  let touchStart = null;
+  document.addEventListener('touchstart', (e) => {
+    touchStart = e.changedTouches[0].clientX;
+  }, { passive: true });
+  document.addEventListener('touchend', (e) => {
+    if (touchStart === null) return;
+    const dx = e.changedTouches[0].clientX - touchStart;
+    if (Math.abs(dx) > 50) go(idx + (dx < 0 ? 1 : -1));
+    touchStart = null;
+  }, { passive: true });
+</script>
+
+</body>
+</html>
