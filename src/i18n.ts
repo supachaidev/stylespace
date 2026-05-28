@@ -115,7 +115,7 @@ const UI_STRINGS: Record<string, Record<Lang, string>> = {
   // These are shown during API calls with different messages per stage
   'loading.analyzing': { en: 'Analyzing your floor plan...', th: 'กำลังวิเคราะห์แปลนห้อง...' },
   'loading.analyzing.sub': { en: 'Identifying rooms and layout', th: 'กำลังระบุห้องและผังพื้นที่' },
-  'loading.generating': { en: 'Generating your personalized render...', th: 'กำลังสร้างภาพตามสไตล์ของคุณ...' },
+  'loading.generating': { en: 'Designing your space…', th: 'กำลังออกแบบห้องของคุณ...' },
   'loading.restyling': { en: 'Restyling the base render', th: 'กำลังปรับสไตล์ใหม่' },
   'loading.regenerating': { en: 'This may take a moment', th: 'รอสักครู่นะ' },
 
@@ -169,6 +169,10 @@ const UI_STRINGS: Record<string, Record<Lang, string>> = {
   'styles.match': { en: '{pct}% match', th: 'ตรง {pct}%' },
 
   // ── Result Section ──
+  'result.eyebrow': {
+    en: 'Design inspiration for your space',
+    th: 'แรงบันดาลใจการออกแบบสำหรับห้องของคุณ',
+  },
   'result.products': { en: 'Recommended SCG Products', th: 'สินค้า SCG แนะนำ' },
 
   // ── Bill of Materials Panel ──

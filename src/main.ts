@@ -697,6 +697,7 @@ function showResultRaw(renderUrl: string, style: StylePreset, cached: CachedBom 
   if (img.complete && img.naturalWidth > 0) {
     requestAnimationFrame(() => img.classList.add('loaded'));
   }
+  document.getElementById('result-eyebrow')!.textContent = t('result.eyebrow');
   document.getElementById('result-style-name')!.textContent = style.label;
   document.getElementById('result-style-desc')!.textContent = style.description;
 
@@ -1698,6 +1699,7 @@ function refreshCurrentView(): void {
           : currentStyle)
       : presets.find(s => s.id === currentStyle!.id) ?? currentStyle;
     currentStyle = freshStyle;
+    document.getElementById('result-eyebrow')!.textContent = t('result.eyebrow');
     document.getElementById('result-style-name')!.textContent = freshStyle.label;
     document.getElementById('result-style-desc')!.textContent = freshStyle.description;
     // animate=false: a language toggle shouldn't replay the cascade or count-up.

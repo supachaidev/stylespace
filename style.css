@@ -1467,6 +1467,16 @@ main > section.leaving {
   margin-bottom: 24px;
 }
 
+.result-eyebrow {
+  font-size: var(--type-footnote-size);
+  line-height: var(--type-footnote-lh);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--tint);
+  margin-bottom: 6px;
+}
+
 .result-header h2 {
   font-size: var(--type-large-title-size);
   line-height: var(--type-large-title-lh);
