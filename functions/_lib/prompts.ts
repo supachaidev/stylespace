@@ -44,12 +44,23 @@ REAL-WORLD DIMENSIONS:
       "kitchen_sink", "stove", "fridge". Empty array for rooms with none.
 
 LAYOUT RULES:
-1. Identify all rooms and their labels.
-2. Mentally divide the floor plan into a grid; place rooms so they tile
-   together — shared walls should have matching coordinates.
+1. Identify EVERY room that has a label or a walled boundary, INCLUDING small
+   ones — entry halls, closets, alcoves, vestibules, utility nooks. Do not
+   skip a room because it's small (a 1.5 m² entry hall still counts).
+2. Each room's bounding box must match its actual position and size on the
+   image. Use precise coordinates — do NOT round to 0.05 increments.
 3. Rooms must NOT overlap. Check every pair.
-4. Rooms should collectively cover the entire floor plan with minimal gaps.
-5. Use increments of 0.05 for cleaner alignment.
+4. The union of all room boxes IS the apartment's outer shape. If part of
+   the image is exterior space (outside the apartment walls, outdoors, a
+   neighbouring unit, blank margin), LEAVE THAT SPACE UNCOVERED. Do not
+   stretch rooms to fill the image bounds.
+   - An L-shaped apartment must produce L-shaped coverage (a gap in one
+     corner of the image).
+   - A T-shaped or irregular apartment must produce irregular coverage.
+   - If you flatten an L-shape into a rectangle, the downstream 3D render
+     will show the wrong building outline — this is a critical failure mode.
+5. Shared interior walls between adjacent rooms should have matching
+   coordinates so the rooms align cleanly.
 
 Return ONLY valid JSON. No markdown, no explanation, no code fences.
 
@@ -135,26 +146,31 @@ export function buildBasePrompt(
     ? `\nMATERIALS USED (these are the actual SCG products in the BOM — render them faithfully):\n${materialSummary}\n`
     : '';
 
-  return `Generate a photorealistic isometric 3D cutaway rendering of this apartment floor plan.
+  return `Generate a photorealistic isometric 3D cutaway rendering of an apartment.
 
-The reference image shows the floor plan with each room outlined and labelled — preserve those exact boundaries, sizes, and positions in the render.
+The attached image is a ROOM SCHEMATIC, not a real floor plan. Each solid coloured block is one room, labelled with a marker like [1], [2], etc. Treat the schematic as the authoritative layout: the apartment has exactly the rooms shown in the schematic, in those exact positions, with those exact relative sizes.
 
-COORDINATE SYSTEM: image is a 1.0 × 1.0 grid. x = 0 is left, x = 1 is right; y = 0 is top, y = 1 is bottom.
+CRITICAL — APARTMENT OUTLINE: The union of all coloured blocks IS the apartment's outer shape. If the blocks form an L-shape, the apartment is L-shaped. If they form a T, a U, or any irregular polygon, render that EXACT polygon. The white (uncoloured) area of the schematic is OUTSIDE the apartment — do not extend walls, floors, or rooms into it. Do not square the building off into a rectangle. Do not subdivide or merge blocks.
 
-The apartment has exactly ${total} rooms:
+COORDINATE SYSTEM (for cross-reference): image is a 1.0 × 1.0 grid. x = 0 left, x = 1 right; y = 0 top, y = 1 bottom.
+
+The apartment has exactly ${total} rooms (markers match the blocks in the schematic):
 ${roomDescriptions}
 
-LAYOUT GRID (${GRID_COLS}×${GRID_ROWS}, '.' = empty, each digit/letter = the room with that marker above):
+LAYOUT GRID (${GRID_COLS}×${GRID_ROWS}, '.' = empty, each digit/letter is the room with that marker):
 ${grid}
 
 INTERIOR DESIGN STYLE:
 ${stylePrompt}
 ${materialBlock}
-REQUIREMENTS:
+HARD REQUIREMENTS:
 - Isometric view from above at a 45-degree angle, no roof, all rooms visible.
-- Show exactly ${total} rooms; their relative sizes and positions must match the coordinates and grid above — do not invent, merge, or omit rooms.
-- Add furniture appropriate to each room type.
-- Professional architectural rendering, high quality, detailed.`;
+- Exactly ${total} rooms. Do not invent, merge, omit, or subdivide rooms. The room count must match the schematic.
+- Each room's position and proportions must match its coloured block in the schematic. A room in the top-left of the schematic must be in the top-left of the render; a wide room must be wide.
+- The apartment's outer shape must match the union of the coloured blocks EXACTLY. L-shape stays L-shape; irregular polygons stay irregular. Do not square the building off. White space in the schematic = outside the apartment.
+- Add furniture appropriate to each room type (use the labels to identify type).
+- Photorealistic, professional architectural rendering, high quality, detailed materials.
+- Do not draw the coloured blocks, markers, or labels in the render — they are layout instructions only.`;
 }
 
 // ─── Claude: rooms + style → SCG product BOM ───────────────────────────────
@@ -255,6 +271,60 @@ Constraints:
 - Every "room_id" MUST match one of the room IDs above.
 - Reasons must be concrete (mention a material/colour/feel), not generic.
 - "reason_en" and "reason_th" should each be ≤120 characters.`;
+}
+
+// ─── Claude: render fidelity check (verify-and-retry loop) ─────────────────
+//
+// Called after Gemini returns a render. Claude sees both the schematic and
+// the render, then scores how faithfully the render reproduces the layout.
+// Low scores trigger one regeneration with the specific issues appended as
+// corrective feedback to the original Gemini prompt.
+
+interface VerifyRoom {
+  label: string;
+}
+
+export function buildVerifyPrompt(rooms: VerifyRoom[]): string {
+  const roomList = rooms.map((r, i) => `  [${roomMarker(i)}] ${r.label}`).join('\n');
+
+  return `You are quality-checking an AI-generated 3D apartment render against the room schematic it was supposed to follow.
+
+You will see TWO images:
+1. The room SCHEMATIC — clean coloured blocks = rooms; white space = OUTSIDE the apartment.
+2. The RENDER — an isometric 3D apartment that should match the schematic's layout.
+
+The render must:
+- Contain exactly the same number of rooms as the schematic.
+- Place each room in the same relative position (top/bottom/left/right) and similar proportions.
+- Reproduce the apartment's OUTER SHAPE — if the schematic is L-shaped, the render must be L-shaped. If white space appears in one corner of the schematic, the render must NOT extend the building into that corner.
+- Not invent extra rooms, hallways, or floors not present in the schematic.
+
+EXPECTED ROOMS (from the schematic):
+${roomList}
+
+Return ONLY valid JSON. No markdown, no code fences, no commentary.
+
+{
+  "score": <0-100>,
+  "room_count_correct": true|false,
+  "outline_shape_correct": true|false,
+  "issues": ["short specific problem", "another problem"],
+  "should_retry": true|false
+}
+
+Scoring guide:
+- 90-100: layout matches the schematic well; minor cosmetic differences only.
+- 70-89:  mostly correct; one or two issues a designer would notice.
+- 50-69:  noticeable layout drift (outline wrong, a room missing or swapped).
+- below 50: significantly different layout.
+
+Set "should_retry" to true when score < 70 AND the issues are layout-related (room count, outline, position) rather than purely aesthetic — a regeneration with corrective hints is likely to help.
+
+Each "issues" string must be ONE concrete problem under 80 characters. Examples:
+- "L-shape squared off into a rectangle"
+- "entry hall (room [3]) missing from the render"
+- "kitchen and dining are swapped"
+- "extra room appears in top-left that is not in the schematic"`;
 }
 
 // ─── Gemini: existing render → new style ───────────────────────────────────
