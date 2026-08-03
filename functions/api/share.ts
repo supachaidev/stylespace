@@ -57,7 +57,9 @@ function looksLikePngDataUrl(s: unknown): s is string {
 export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   try {
     const text = await request.text();
-    if (text.length > MAX_PAYLOAD_BYTES) {
+    // Measure real UTF-8 bytes, not UTF-16 code units — Thai text in the
+    // BOM is 3 bytes per character, and KV limits are byte-based.
+    if (new TextEncoder().encode(text).length > MAX_PAYLOAD_BYTES) {
       return Response.json({ error: 'Payload too large' }, { status: 413 });
     }
 
