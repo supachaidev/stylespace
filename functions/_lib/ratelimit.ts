@@ -1,20 +1,25 @@
 /**
- * ratelimit.ts — Per-IP request limiter backed by the Cache API
- * ==============================================================
+ * ratelimit.ts — Per-IP request limiter (isolate-local memory)
+ * =============================================================
  *
  * WAF rate limiting rules can't be attached to *.pages.dev (the zone belongs
  * to Cloudflare), so the public demo URL needs its own guard. This is a
  * coarse fixed-window counter: N requests per IP per minute, shared across
  * all AI endpoints.
  *
- * Why the Cache API and not KV: KV caches reads at the edge for up to 60s,
- * so a read-modify-write counter never climbs under rapid fire (verified
- * empirically — 36 back-to-back requests never tripped a KV-based limit).
- * caches.default is colo-local and consistent for sequential requests, which
- * is exactly the attack shape (one machine hammering = one colo). Each colo
- * counts separately, so a distributed attacker gets N/min per colo — fine;
+ * Why plain module state, third time lucky (both verified empirically with
+ * 36 back-to-back requests):
+ *   - KV never trips — reads are edge-cached for up to 60s, so a
+ *     read-modify-write counter never climbs under rapid fire.
+ *   - The Cache API is a silent no-op on *.pages.dev domains — match()
+ *     always misses; it only functions on custom domains.
+ * Module-level state lives in the isolate, which persists across requests
+ * on the same edge server. That matches the attack shape exactly: a script
+ * hammering the API from one machine lands on the same isolate. The counter
+ * resets when the isolate recycles and isn't shared across colos — fine;
  * the goal is stopping a curl loop from burning API credit, not building a
- * precise global quota system.
+ * precise global quota system. A distributed attack calls for Durable
+ * Objects or a custom domain + WAF rule instead.
  */
 
 const WINDOW_SECONDS = 60;
@@ -24,36 +29,34 @@ const WINDOW_SECONDS = 60;
  *  under this; a script hammering /api/generate hits it in seconds. */
 const LIMIT_PER_WINDOW = 30;
 
-/**
- * Returns a 429 Response when the caller is over budget, or null to proceed.
- * Fails open: if the cache is unavailable, the request goes through — better
- * to serve the demo than to block it on a limiter hiccup.
- */
-export async function checkRateLimit(request: Request): Promise<Response | null> {
-  try {
-    const ip = request.headers.get('cf-connecting-ip') ?? 'unknown';
-    const bucket = Math.floor(Date.now() / (WINDOW_SECONDS * 1000));
-    // Synthetic URL — never fetched, purely a cache key. Bucket in the path
-    // gives each window a fresh counter; old ones age out via max-age.
-    const key = new Request(`https://rate-limit.internal/${encodeURIComponent(ip)}/${bucket}`);
+/** Guard against unbounded growth if the isolate lives long under wide
+ *  traffic — prune stale windows once the map gets large. */
+const MAX_TRACKED_IPS = 10_000;
 
-    const cache = caches.default;
-    const hit = await cache.match(key);
-    const current = hit ? Number(await hit.text()) || 0 : 0;
+const counters = new Map<string, { bucket: number; count: number }>();
 
-    if (current >= LIMIT_PER_WINDOW) {
-      return Response.json(
-        { error: 'Too many requests — please wait a minute and try again.' },
-        { status: 429 },
-      );
+/** Returns a 429 Response when the caller is over budget, or null to proceed. */
+export function checkRateLimit(request: Request): Response | null {
+  const ip = request.headers.get('cf-connecting-ip') ?? 'unknown';
+  const bucket = Math.floor(Date.now() / (WINDOW_SECONDS * 1000));
+
+  const entry = counters.get(ip);
+  if (!entry || entry.bucket !== bucket) {
+    if (counters.size >= MAX_TRACKED_IPS) {
+      for (const [k, v] of counters) {
+        if (v.bucket !== bucket) counters.delete(k);
+      }
     }
-
-    // Lost increments under true concurrency are acceptable (coarse limiter).
-    await cache.put(key, new Response(String(current + 1), {
-      headers: { 'Cache-Control': `max-age=${WINDOW_SECONDS * 2}` },
-    }));
-    return null;
-  } catch {
+    counters.set(ip, { bucket, count: 1 });
     return null;
   }
+
+  entry.count++;
+  if (entry.count > LIMIT_PER_WINDOW) {
+    return Response.json(
+      { error: 'Too many requests — please wait a minute and try again.' },
+      { status: 429 },
+    );
+  }
+  return null;
 }
