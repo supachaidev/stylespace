@@ -132,7 +132,23 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
       return Response.json({ error: 'Missing file, style_prompt, or room_data' }, { status: 400 });
     }
 
-    const rooms = (JSON.parse(roomDataRaw) as RoomData).rooms ?? [];
+    // room_data is client-supplied — a bad payload is the caller's error
+    // (400), not ours (500). buildBasePrompt calls .toFixed() on the
+    // coordinates, so non-finite numbers would otherwise throw mid-request.
+    let rooms: RoomData['rooms'];
+    try {
+      const parsed = JSON.parse(roomDataRaw) as RoomData;
+      rooms = Array.isArray(parsed?.rooms) ? parsed.rooms : [];
+    } catch {
+      return Response.json({ error: 'room_data is not valid JSON' }, { status: 400 });
+    }
+    const roomsValid = rooms.every((r) =>
+      typeof r?.label === 'string' &&
+      [r.x, r.y, r.width, r.depth].every((n) => Number.isFinite(n)));
+    if (!roomsValid) {
+      return Response.json({ error: 'room_data rooms are malformed' }, { status: 400 });
+    }
+
     const imageBytes = new Uint8Array(await file.arrayBuffer());
     const imageHash = await sha256Hex(imageBytes, 16);
 
