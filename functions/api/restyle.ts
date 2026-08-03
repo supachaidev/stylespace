@@ -33,9 +33,10 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
 
     const b64 = stripDataUrlPrefix(baseImage);
 
-    // Fingerprint the first 2048 chars of base64 — matches the Python
-    // backend's cheap hashing (we don't need to digest the full render).
-    const fingerprint = `restyle_${await sha256Hex(b64.slice(0, 2048), 16)}`;
+    // Fingerprint the whole base64 string. A prefix-only hash (the old
+    // Python port hashed 2 KB) risks serving the wrong cached render if two
+    // base images ever share a prefix — and hashing ~300 KB costs microseconds.
+    const fingerprint = `restyle_${await sha256Hex(b64, 16)}`;
 
     const cached = await getCached(env.STYLESPACE_RENDER_CACHE, fingerprint, stylePrompt, materialSummary);
     if (cached) {
