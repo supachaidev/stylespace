@@ -169,13 +169,14 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
 
     const client = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY });
     const message = await client.messages.create({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 4000,
+      model: 'claude-sonnet-5',
+      thinking: { type: 'disabled' },
+      max_tokens: 6000,
       messages: [{ role: 'user', content: [{ type: 'text', text: prompt }] }],
     });
 
-    const first = message.content[0];
-    if (first.type !== 'text') {
+    const first = message.content.find((b) => b.type === 'text');
+    if (!first || first.type !== 'text') {
       return Response.json({ error: 'Claude returned no text content' }, { status: 502 });
     }
 

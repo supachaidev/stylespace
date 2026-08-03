@@ -85,7 +85,7 @@ npx wrangler pages secret put GOOGLE_API_KEY
 | Hosting | Cloudflare Pages | Serves Vite `dist/` statically |
 | API | Pages Functions (Workers) | File-based routing under `functions/api/` |
 | Cache | Cloudflare KV | Binding name: `STYLESPACE_RENDER_CACHE` |
-| Room Analysis | Anthropic `claude-sonnet-4-20250514` | Via `@anthropic-ai/sdk` |
+| Room Analysis | Anthropic `claude-sonnet-5` | Via `@anthropic-ai/sdk` |
 | Image Generation | Gemini `gemini-2.5-flash-image` | Via `@google/genai` |
 | Frontend | TypeScript + Vite + ESM | No framework; manual DOM |
 | Compat flag | `nodejs_compat` | Needed by the Anthropic SDK |
@@ -151,7 +151,7 @@ npm run deploy                    # builds, then wrangler pages deploy
 - No `any` types — everything must be properly typed.
 - Anthropic SDK: `@anthropic-ai/sdk` (requires `nodejs_compat` compat flag).
 - Gemini SDK: `@google/genai` (the new unified SDK — NOT `@google/generative-ai`).
-- Claude model must be `claude-sonnet-4-20250514`.
+- Claude model must be `claude-sonnet-5`.
 - Gemini model must be `gemini-2.5-flash-image`.
 - Image resize happens **in the browser** via Canvas (`src/lib/resize.ts`).
 - Cache lives in **KV only** — do not reintroduce a disk cache. Pages Functions are ephemeral.

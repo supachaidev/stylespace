@@ -20,7 +20,7 @@
 
 | เครื่องมือ | Model | บทบาท |
 |---|---|---|
-| **Anthropic Claude** | `claude-sonnet-4-20250514` | Vision-Language Model — รับภาพแปลนห้อง + ข้อความสั่งงาน แล้วตรวจจับห้อง ระบุประเภท คำนวณตำแหน่งและขนาดเป็น Bounding Box (JSON) |
+| **Anthropic Claude** | `claude-sonnet-5` | Vision-Language Model — รับภาพแปลนห้อง + ข้อความสั่งงาน แล้วตรวจจับห้อง ระบุประเภท คำนวณตำแหน่งและขนาดเป็น Bounding Box (JSON) |
 | **Google Gemini** | `gemini-2.5-flash-image` | สร้างภาพ Render จากแปลนห้อง + Style Prompt และ Restyle ภาพ Render เดิมเป็นสไตล์ใหม่ |
 
 ### Tech Stack

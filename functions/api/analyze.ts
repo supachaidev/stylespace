@@ -135,8 +135,12 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
 
     const client = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY });
     const message = await client.messages.create({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 2500,
+      // claude-sonnet-4-20250514 was retired 2026-06-15 (404s now); Sonnet 5
+      // is the official drop-in. Thinking is ON by default there — disable it
+      // so the first content block stays text and max_tokens buys only JSON.
+      model: 'claude-sonnet-5',
+      thinking: { type: 'disabled' },
+      max_tokens: 4000,
       messages: [{
         role: 'user',
         content: [
@@ -149,8 +153,8 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
       }],
     });
 
-    const first = message.content[0];
-    if (first.type !== 'text') return Response.json(FALLBACK);
+    const first = message.content.find((b) => b.type === 'text');
+    if (!first || first.type !== 'text') return Response.json(FALLBACK);
 
     try {
       return Response.json(parseClaudeJSON(first.text));

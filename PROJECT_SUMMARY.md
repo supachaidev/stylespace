@@ -86,7 +86,7 @@ Browser (Vite-built TS bundle)
 | Hosting | Cloudflare Pages | Global CDN, zero cold-start, free tier covers the demo |
 | Compute | Pages Functions (Workers) | File-based routing — `functions/api/*.ts` |
 | Cache | Cloudflare KV | Keyed by `sha256(image)_sha256(prompt)` — instant re-renders |
-| Vision/Reasoning | Anthropic `claude-sonnet-4-20250514` | Floor plan parsing + product picking |
+| Vision/Reasoning | Anthropic `claude-sonnet-5` | Floor plan parsing + product picking |
 | Image Generation | Google `gemini-2.5-flash-image` | Photorealistic isometric output |
 | Frontend | TypeScript + Vite, no framework | ~1,900 LOC of plain DOM — fast, transparent, demo-safe |
 | Image resize | Browser Canvas | No server-side Pillow needed |

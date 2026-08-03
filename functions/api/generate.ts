@@ -76,8 +76,9 @@ async function verifyRender(
 ): Promise<VerifyResult | null> {
   try {
     const message = await client.messages.create({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 600,
+      model: 'claude-sonnet-5',
+      thinking: { type: 'disabled' },
+      max_tokens: 800,
       messages: [{
         role: 'user',
         content: [
@@ -88,8 +89,8 @@ async function verifyRender(
       }],
     });
 
-    const first = message.content[0];
-    if (first.type !== 'text') return null;
+    const first = message.content.find((b) => b.type === 'text');
+    if (!first || first.type !== 'text') return null;
     let text = first.text.trim();
     if (text.startsWith('```')) {
       const nl = text.indexOf('\n');
