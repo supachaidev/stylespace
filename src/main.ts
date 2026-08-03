@@ -930,7 +930,12 @@ function renderBomPanel(
 
       const swatch = document.createElement('span');
       swatch.className = 'bom-swatch';
-      swatch.style.background = line.swatch;
+      // Catalog swatches are plain hex colors. In a shared view the BOM is
+      // attacker-suppliable, so don't pass arbitrary CSS (url(...) etc.)
+      // into a style property.
+      if (/^#[0-9a-f]{3,8}$/i.test(line.swatch)) {
+        swatch.style.background = line.swatch;
+      }
 
       const info = document.createElement('div');
       info.className = 'bom-line-info';
@@ -1329,6 +1334,25 @@ function flashShareCopied(btn: HTMLButtonElement | null): void {
 }
 
 /**
+ * Minimal shape check on a fetched share payload. POST /api/share only
+ * validates render_url and the style fields, so a crafted POST could
+ * otherwise store a payload that crashes the result view on load (e.g.
+ * analysis.rooms not being an array). Everything is rendered through
+ * textContent, so this is about robustness, not XSS.
+ */
+function isValidSharePayload(p: SharePayload | null | undefined): p is SharePayload {
+  return typeof p?.render_url === 'string'
+    && p.render_url.startsWith('data:image/')
+    && typeof p.style_id === 'string'
+    && typeof p.style_label === 'string'
+    && typeof p.style_description === 'string'
+    && Array.isArray(p.analysis?.rooms)
+    && p.analysis.rooms.every((r) =>
+      typeof r?.id === 'string' && typeof r.label === 'string' && Number.isFinite(r.area_sqm))
+    && Array.isArray(p.bom?.bom);
+}
+
+/**
  * Try to restore a result view from `?share=<id>` in the URL. Returns true
  * if a share was loaded (caller should NOT show the upload screen).
  */
@@ -1346,6 +1370,10 @@ async function tryLoadFromShareLink(): Promise<boolean> {
       return true;
     }
     const data = await res.json() as SharePayload;
+    if (!isValidSharePayload(data)) {
+      showError(t('share.notFound'));
+      return true;
+    }
 
     // Hydrate session state from the snapshot. We treat the shared payload
     // as if it were a freshly generated result — same caches, same render
