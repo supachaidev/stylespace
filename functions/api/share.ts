@@ -36,19 +36,18 @@ interface SharePayload {
 const TTL_SECONDS = 60 * 60 * 24 * 30;       // 30 days
 const MAX_PAYLOAD_BYTES = 5 * 1024 * 1024;   // 5 MB — KV allows 25, but our renders are ~300 KB; this caps abuse
 
-/** 8-char base32 ID (≈ 40 bits of randomness). Collision odds are negligible
- *  at the share volumes we care about. */
+/** 8-char base32 ID (40 bits of randomness — 5 independent bits per char).
+ *  Collision odds are negligible at the share volumes we care about, and
+ *  the space is large enough that IDs aren't guessable in practice. */
 function newShareId(): string {
-  const bytes = new Uint8Array(5);
+  const bytes = new Uint8Array(8);
   crypto.getRandomValues(bytes);
   // Crockford-style alphabet (no I, L, O, U) so links don't get misread.
+  // 256 % 32 === 0, so `b % 32` over a uniform byte is uniform on [0, 32).
   const alpha = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
   let out = '';
-  for (const b of bytes) {
-    out += alpha[b & 31];
-    out += alpha[(b >> 3) & 31];
-  }
-  return out.slice(0, 8).toLowerCase();
+  for (const b of bytes) out += alpha[b % 32];
+  return out.toLowerCase();
 }
 
 function looksLikePngDataUrl(s: unknown): s is string {
