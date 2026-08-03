@@ -35,7 +35,7 @@
  */
 
 import { getStylePresets, createCustomStyle, createRandomStyle } from './styles';
-import { getQuizQuestions, calculateResult, getMaxScore, buildAnswerSummary, type QuizResult } from './quiz';
+import { getQuizQuestions, calculateResult, getMaxScores, buildAnswerSummary, type QuizResult } from './quiz';
 import { t, getLang, setLang, onLangChange } from './i18n';
 import { resizeImageFile } from './lib/resize';
 import { annotateFloorPlan } from './lib/annotate';
@@ -514,7 +514,7 @@ function showStylePicker(pushHistory: boolean): void {
       scoreMap.set(entry.styleId, entry.score);
     }
   }
-  const maxScore = getMaxScore();
+  const maxScores = getMaxScores();
 
   // Sort presets by quiz score (highest first), so best matches appear first
   const presets = getStylePresets();
@@ -566,7 +566,8 @@ function showStylePicker(pushHistory: boolean): void {
         badge = `<span class="style-badge recommended">${t('styles.madeForYou')}</span>`;
       } else {
         const score = scoreMap.get(style.id) ?? 0;
-        const pct = Math.round((score / maxScore) * 100);
+        const max = maxScores[style.id] ?? 0;
+        const pct = max > 0 ? Math.round((score / max) * 100) : 0;
         badge = `<span class="style-badge">${t('styles.match').replace('{pct}', String(pct))}</span>`;
       }
     }

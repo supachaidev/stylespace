@@ -47,7 +47,9 @@ import { getLang, QUIZ_I18N } from './i18n';
 //   2 = moderate match
 //   1 = slight match
 //
-// Maximum possible score per style = 6 questions × 3 points = 18
+// Each style's achievable maximum differs (no style earns points in every
+// question) — see getMaxScores() for the per-style ceilings used to compute
+// match percentages.
 
 const QUIZ_BASE: { options: { icon: string; scores: Record<string, number>; promptTags: string[] }[] }[] = [
   // ── Question 1: How should your home feel? ──
@@ -216,17 +218,33 @@ The design should feel intentional and curated, not random.`;
 
 
 /**
- * Get the maximum possible score for any single style.
+ * Get the maximum achievable score for each style.
  *
- * This is used to calculate match percentages:
- *   matchPercent = (actualScore / maxScore) * 100
+ * For every question, take the highest points the style earns among that
+ * question's options, and sum across questions. This is the ceiling used
+ * for match percentages:
+ *   matchPercent = (actualScore / maxScores[styleId]) * 100
  *
- * Max = 6 questions × 3 points per question = 18
+ * Normalizing against the theoretical 18 (6 questions × 3 points) meant no
+ * style could ever reach 100% — no style scores 3 in all six questions —
+ * so even a perfect run of answers showed a deflated "≈80% match".
  *
- * @returns The theoretical maximum score (18)
+ * @returns Map of styleId → maximum achievable score
  */
-export function getMaxScore(): number {
-  return QUIZ_BASE.length * 3;
+export function getMaxScores(): Record<string, number> {
+  const max: Record<string, number> = {};
+  for (const q of QUIZ_BASE) {
+    const bestPerStyle: Record<string, number> = {};
+    for (const opt of q.options) {
+      for (const [styleId, pts] of Object.entries(opt.scores)) {
+        bestPerStyle[styleId] = Math.max(bestPerStyle[styleId] ?? 0, pts);
+      }
+    }
+    for (const [styleId, pts] of Object.entries(bestPerStyle)) {
+      max[styleId] = (max[styleId] ?? 0) + pts;
+    }
+  }
+  return max;
 }
 
 
