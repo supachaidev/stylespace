@@ -1609,6 +1609,8 @@ function resetApp(): void {
   currentAnalysis = null;
   currentStyle = null;
   currentBom = null;
+  originalBom = null;
+  bomBaseAreas = {};
   renderCache.clear();
   bomCache.clear();
   quizAnswers = [];
