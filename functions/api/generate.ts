@@ -19,6 +19,7 @@
 import { GoogleGenAI } from '@google/genai';
 import Anthropic from '@anthropic-ai/sdk';
 import type { Env } from '../_lib/env';
+import { checkRateLimit } from '../_lib/ratelimit';
 import { bytesToBase64 } from '../_lib/base64';
 import { getFile } from '../_lib/formdata';
 import { sha256Hex } from '../_lib/hash';
@@ -126,6 +127,9 @@ ${issues.map((s) => `- ${s}`).join('\n')}${mirrorHint}`;
 
 export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   try {
+    const limited = await checkRateLimit(env.STYLESPACE_RENDER_CACHE, request);
+    if (limited) return limited;
+
     const form = await request.formData();
     const file = getFile(form, 'file');
     const stylePrompt = form.get('style_prompt');

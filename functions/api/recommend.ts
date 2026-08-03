@@ -23,6 +23,7 @@
 
 import Anthropic from '@anthropic-ai/sdk';
 import type { Env } from '../_lib/env';
+import { checkRateLimit } from '../_lib/ratelimit';
 import { sha256Hex } from '../_lib/hash';
 import { CACHE_TTL_SECONDS } from '../_lib/cache';
 import { buildRecommendPrompt } from '../_lib/prompts';
@@ -146,6 +147,9 @@ async function cacheKey(rooms: RoomInput[], stylePrompt: string, quizTags: strin
 
 export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   try {
+    const limited = await checkRateLimit(env.STYLESPACE_RENDER_CACHE, request);
+    if (limited) return limited;
+
     const body = await request.json<RecommendBody>();
     const rooms = Array.isArray(body?.rooms) ? body.rooms : [];
     const styleLabel = typeof body?.style_label === 'string' ? body.style_label : '';

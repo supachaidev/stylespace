@@ -12,6 +12,7 @@
 
 import { GoogleGenAI } from '@google/genai';
 import type { Env } from '../_lib/env';
+import { checkRateLimit } from '../_lib/ratelimit';
 import { stripDataUrlPrefix } from '../_lib/base64';
 import { sha256Hex } from '../_lib/hash';
 import { getCached, setCached } from '../_lib/cache';
@@ -19,6 +20,9 @@ import { buildRestylePrompt } from '../_lib/prompts';
 
 export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   try {
+    const limited = await checkRateLimit(env.STYLESPACE_RENDER_CACHE, request);
+    if (limited) return limited;
+
     const form = await request.formData();
     const baseImage = form.get('base_image');
     const stylePrompt = form.get('style_prompt');

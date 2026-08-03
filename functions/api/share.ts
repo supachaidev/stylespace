@@ -22,6 +22,7 @@
  */
 
 import type { Env } from '../_lib/env';
+import { checkRateLimit } from '../_lib/ratelimit';
 
 interface SharePayload {
   render_url: string;       // Full data:image/png;base64,... URL
@@ -56,6 +57,9 @@ function looksLikePngDataUrl(s: unknown): s is string {
 
 export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   try {
+    const limited = await checkRateLimit(env.STYLESPACE_RENDER_CACHE, request);
+    if (limited) return limited;
+
     const text = await request.text();
     // Measure real UTF-8 bytes, not UTF-16 code units — Thai text in the
     // BOM is 3 bytes per character, and KV limits are byte-based.
