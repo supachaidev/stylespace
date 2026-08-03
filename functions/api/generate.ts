@@ -112,10 +112,16 @@ async function verifyRender(
 }
 
 function buildCorrectivePrompt(basePrompt: string, issues: string[]): string {
+  // A mirrored layout gets a directional instruction, not just the issue list —
+  // "fix: mirrored" alone tends to reproduce the same camera choice.
+  const mirrorHint = issues.some((s) => /mirror/i.test(s))
+    ? '\nThe previous render was MIRRORED left-to-right. Re-read the [L] and [R] markers in the schematic\'s FRONT band: the [L] edge must be on the LEFT of the image. Flip your camera to the correct side.'
+    : '';
+
   return `${basePrompt}
 
 PREVIOUS ATTEMPT HAD THESE LAYOUT PROBLEMS — fix them in this regeneration:
-${issues.map((s) => `- ${s}`).join('\n')}`;
+${issues.map((s) => `- ${s}`).join('\n')}${mirrorHint}`;
 }
 
 export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {

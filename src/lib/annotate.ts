@@ -48,15 +48,23 @@ export async function annotateFloorPlan(
   const h = Math.max(1, Math.round(bitmap.height * scale));
   bitmap.close();
 
+  // Orientation band appended BELOW the room area. Gemini has no way to know
+  // which side of the plan the camera should face, and with a near-symmetric
+  // (especially hand-drawn) plan it mirrors the layout roughly half the time.
+  // A visual anchor beats prose: the band marks the camera side, and the L/R
+  // letters pin the horizontal axis. Rooms keep their 0..1 coords within the
+  // area ABOVE the band, so the coordinate text in the prompt stays valid.
+  const bandH = Math.max(28, Math.round(h * 0.08));
+
   const canvas = document.createElement('canvas');
   canvas.width = w;
-  canvas.height = h;
+  canvas.height = h + bandH;
   const ctx = canvas.getContext('2d');
   if (!ctx) throw new Error('Could not get 2D context');
 
   // Neutral background — gives Gemini nothing to interpret except our boxes
   ctx.fillStyle = '#FFFFFF';
-  ctx.fillRect(0, 0, w, h);
+  ctx.fillRect(0, 0, w, h + bandH);
 
   const borderWidth = Math.max(3, Math.round(Math.min(w, h) / 200));
   const markerFontSize = Math.max(28, Math.round(Math.min(w, h) / 18));
@@ -103,6 +111,22 @@ export async function annotateFloorPlan(
       ctx.fillText(`${room.area_sqm.toFixed(1)} m²`, cx, cy + markerFontSize / 4 + labelFontSize);
     }
   });
+
+  // Orientation band: dark strip = the side nearest the camera, with the
+  // left/right edges lettered. Referenced by name in buildBasePrompt and
+  // buildVerifyPrompt (functions/_lib/prompts.ts) — keep the wording in sync.
+  ctx.fillStyle = '#1F3A5F';
+  ctx.fillRect(0, h, w, bandH);
+  ctx.fillStyle = '#FFFFFF';
+  ctx.textBaseline = 'middle';
+  const bandFontSize = Math.max(12, Math.round(bandH * 0.5));
+  ctx.font = `700 ${bandFontSize}px system-ui, sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.fillText('FRONT — CAMERA SIDE', w / 2, h + bandH / 2);
+  ctx.textAlign = 'left';
+  ctx.fillText('[L]', Math.round(bandH * 0.3), h + bandH / 2);
+  ctx.textAlign = 'right';
+  ctx.fillText('[R]', w - Math.round(bandH * 0.3), h + bandH / 2);
 
   const blob = await new Promise<Blob | null>((resolve) => {
     canvas.toBlob(resolve, 'image/jpeg', 0.92);

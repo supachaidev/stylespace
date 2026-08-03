@@ -150,6 +150,8 @@ export function buildBasePrompt(
 
 The attached image is a ROOM SCHEMATIC, not a real floor plan. Each solid coloured block is one room, labelled with a marker like [1], [2], etc. Treat the schematic as the authoritative layout: the apartment has exactly the rooms shown in the schematic, in those exact positions, with those exact relative sizes.
 
+ORIENTATION AIDS: The dark band along the schematic's BOTTOM edge labelled "FRONT — CAMERA SIDE" marks the side of the apartment nearest the camera. The [L] and [R] letters in that band mark the layout's left and right edges. The band and its letters are orientation aids only — they are NOT rooms and NOT part of the apartment.
+
 CRITICAL — APARTMENT OUTLINE: The union of all coloured blocks IS the apartment's outer shape. If the blocks form an L-shape, the apartment is L-shaped. If they form a T, a U, or any irregular polygon, render that EXACT polygon. The white (uncoloured) area of the schematic is OUTSIDE the apartment — do not extend walls, floors, or rooms into it. Do not square the building off into a rectangle. Do not subdivide or merge blocks.
 
 COORDINATE SYSTEM (for cross-reference): image is a 1.0 × 1.0 grid. x = 0 left, x = 1 right; y = 0 top, y = 1 bottom.
@@ -165,12 +167,13 @@ ${stylePrompt}
 ${materialBlock}
 HARD REQUIREMENTS:
 - Isometric view from above at a 45-degree angle, no roof, all rooms visible.
+- CAMERA POSITION: the camera sits on the schematic's BOTTOM edge (the FRONT band) looking toward the top edge. The schematic's LEFT edge (marked [L]) MUST appear on the LEFT side of the rendered image; the RIGHT edge (marked [R]) MUST appear on the RIGHT. NEVER mirror, flip, or rotate the layout — a room at x 0.0–0.3 belongs on the render's left, a room at x 0.7–1.0 on its right.
 - Exactly ${total} rooms. Do not invent, merge, omit, or subdivide rooms. The room count must match the schematic.
 - Each room's position and proportions must match its coloured block in the schematic. A room in the top-left of the schematic must be in the top-left of the render; a wide room must be wide.
 - The apartment's outer shape must match the union of the coloured blocks EXACTLY. L-shape stays L-shape; irregular polygons stay irregular. Do not square the building off. White space in the schematic = outside the apartment.
 - Add furniture appropriate to each room type (use the labels to identify type).
 - Photorealistic, professional architectural rendering, high quality, detailed materials.
-- Do not draw the coloured blocks, markers, or labels in the render — they are layout instructions only.`;
+- Do not draw the coloured blocks, markers, labels, or the FRONT orientation band in the render — they are layout instructions only.`;
 }
 
 // ─── Claude: rooms + style → SCG product BOM ───────────────────────────────
@@ -290,12 +293,13 @@ export function buildVerifyPrompt(rooms: VerifyRoom[]): string {
   return `You are quality-checking an AI-generated 3D apartment render against the room schematic it was supposed to follow.
 
 You will see TWO images:
-1. The room SCHEMATIC — clean coloured blocks = rooms; white space = OUTSIDE the apartment.
-2. The RENDER — an isometric 3D apartment that should match the schematic's layout.
+1. The room SCHEMATIC — clean coloured blocks = rooms; white space = OUTSIDE the apartment. The dark band along its bottom edge ("FRONT — CAMERA SIDE", with [L]/[R] letters) is an orientation aid — it is NOT a room; ignore it when judging the outline.
+2. The RENDER — an isometric 3D apartment that should match the schematic's layout, viewed from the schematic's bottom (FRONT) edge.
 
 The render must:
 - Contain exactly the same number of rooms as the schematic.
 - Place each room in the same relative position (top/bottom/left/right) and similar proportions.
+- NOT be mirrored: a room on the schematic's LEFT must appear on the render's LEFT. Check this explicitly — pick an off-centre room and confirm its side matches. A left-right mirrored layout is a critical failure: score it below 50 and set should_retry to true.
 - Reproduce the apartment's OUTER SHAPE — if the schematic is L-shaped, the render must be L-shaped. If white space appears in one corner of the schematic, the render must NOT extend the building into that corner.
 - Not invent extra rooms, hallways, or floors not present in the schematic.
 
@@ -324,7 +328,8 @@ Each "issues" string must be ONE concrete problem under 80 characters. Examples:
 - "L-shape squared off into a rectangle"
 - "entry hall (room [3]) missing from the render"
 - "kitchen and dining are swapped"
-- "extra room appears in top-left that is not in the schematic"`;
+- "extra room appears in top-left that is not in the schematic"
+- "layout mirrored left-right: bedroom [2] is on the right, schematic has it left"`;
 }
 
 // ─── Gemini: existing render → new style ───────────────────────────────────
