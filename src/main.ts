@@ -1573,12 +1573,8 @@ function showSectionRaw(section: 'upload' | 'loading' | 'quiz' | 'styles' | 'res
   // Reset loading helpers on entering or leaving the loading section so the
   // first updateLoadingText doesn't cross-fade with stale text and any
   // subtext rotation from the previous visit is stopped.
-  if (section !== 'loading') {
-    loadingTitleInitialized = false;
-    clearLoadingSubtextRotation();
-  } else {
-    loadingTitleInitialized = false;
-  }
+  loadingTitleInitialized = false;
+  if (section !== 'loading') clearLoadingSubtextRotation();
 
   // Cancel any in-flight exit — its handler would otherwise fire later and
   // toggle classes on stale references.
