@@ -24,6 +24,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import type { Env } from '../_lib/env';
 import { sha256Hex } from '../_lib/hash';
+import { CACHE_TTL_SECONDS } from '../_lib/cache';
 import { buildRecommendPrompt } from '../_lib/prompts';
 import { catalogForPrompt, findProduct, type Product } from '../_lib/catalog';
 
@@ -201,7 +202,9 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
 
     // KV write is fire-and-forget; this Function returns before the value
     // is replicated, but a hit later in the session avoids the Claude call.
-    await env.STYLESPACE_RENDER_CACHE.put(key, JSON.stringify(response));
+    await env.STYLESPACE_RENDER_CACHE.put(key, JSON.stringify(response), {
+      expirationTtl: CACHE_TTL_SECONDS,
+    });
 
     return Response.json(response);
   } catch (e) {

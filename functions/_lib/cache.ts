@@ -22,6 +22,12 @@
 
 import { sha256Hex } from './hash';
 
+// Renders are cheap to regenerate and expensive to store forever. 30 days
+// covers any realistic demo/session revisit while keeping the namespace
+// from growing without bound (every unique image×style×materials combo
+// stores a ~300 KB base64 PNG).
+export const CACHE_TTL_SECONDS = 60 * 60 * 24 * 30;
+
 async function cacheKey(imageHash: string, stylePrompt: string, materialSummary?: string): Promise<string> {
   const promptHash = await sha256Hex(stylePrompt, 12);
   const base = `${imageHash}_${promptHash}`;
@@ -48,5 +54,5 @@ export async function setCached(
   materialSummary?: string,
 ): Promise<void> {
   const key = await cacheKey(imageHash, stylePrompt, materialSummary);
-  await kv.put(key, b64Data);
+  await kv.put(key, b64Data, { expirationTtl: CACHE_TTL_SECONDS });
 }
