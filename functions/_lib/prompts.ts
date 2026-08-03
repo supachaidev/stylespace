@@ -169,11 +169,14 @@ HARD REQUIREMENTS:
 - Isometric view from above at a 45-degree angle, no roof, all rooms visible.
 - CAMERA POSITION: the camera sits on the schematic's BOTTOM edge (the FRONT band) looking toward the top edge. The schematic's LEFT edge (marked [L]) MUST appear on the LEFT side of the rendered image; the RIGHT edge (marked [R]) MUST appear on the RIGHT. NEVER mirror, flip, or rotate the layout — a room at x 0.0–0.3 belongs on the render's left, a room at x 0.7–1.0 on its right.
 - Exactly ${total} rooms. Do not invent, merge, omit, or subdivide rooms. The room count must match the schematic.
-- Each room's position and proportions must match its coloured block in the schematic. A room in the top-left of the schematic must be in the top-left of the render; a wide room must be wide.
+- Each room's position and proportions must match its coloured block in the schematic. A room in the top-left of the schematic must be at the back-left of the render (the top edge is the far side from the camera); a wide room must be wide.
+- Preserve each room's SIZE relative to the whole apartment: a room covering one third of the schematic's area must cover one third of the apartment's floor area in the render. Do not shrink large rooms or enlarge small ones.
+- Do not add interior walls, partitions, or nooks that are not block boundaries in the schematic.
 - The apartment's outer shape must match the union of the coloured blocks EXACTLY. L-shape stays L-shape; irregular polygons stay irregular. Do not square the building off. White space in the schematic = outside the apartment.
 - Add furniture appropriate to each room type (use the labels to identify type).
 - Photorealistic, professional architectural rendering, high quality, detailed materials.
-- Do not draw the coloured blocks, markers, labels, or the FRONT orientation band in the render — they are layout instructions only.`;
+- Do not draw the coloured blocks, markers, labels, or the FRONT orientation band in the render — they are layout instructions only.
+- The final image must contain NO text of any kind: no letters, numbers, words, watermarks, bands, or borders. Pure photorealistic imagery only.`;
 }
 
 // ─── Claude: rooms + style → SCG product BOM ───────────────────────────────
@@ -349,5 +352,6 @@ RULES:
 - Keep the same isometric camera angle and room positions exactly as shown.
 - Replace all furniture, wall colors, floor materials, and decorations to match the new style.
 - Every room must remain in the same position and size.
-- The result should look like the same apartment redesigned by a different interior designer.`;
+- The result should look like the same apartment redesigned by a different interior designer.
+- Do not add any text, letters, watermarks, bands, or borders to the image.`;
 }

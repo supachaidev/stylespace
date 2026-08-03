@@ -38,7 +38,7 @@ import { getStylePresets, createCustomStyle, createRandomStyle } from './styles'
 import { getQuizQuestions, calculateResult, getMaxScores, buildAnswerSummary, type QuizResult } from './quiz';
 import { t, getLang, setLang, onLangChange } from './i18n';
 import { resizeImageFile } from './lib/resize';
-import { annotateFloorPlan } from './lib/annotate';
+import { annotateFloorPlan, stripOrientationBand } from './lib/annotate';
 import { FloorPlanCanvas } from './lib/draw';
 import type { StylePreset, AnalyzeResponse, RenderResponse, RecommendResponse, BomLine, RoomInfo, SharePayload, ShareResponse } from './types';
 
@@ -473,12 +473,16 @@ async function generateFirstRender(style: StylePreset): Promise<void> {
 
     if (data.error) { showError(data.error); return; }
 
-    // Store as the base render for future restyling
-    baseRender = data.render_url;
-    // Cache this style's render for instant switching later
-    renderCache.set(style.id, data.render_url);
+    // Gemini sometimes copies the schematic's FRONT band into the render
+    // despite instructions — crop it off before anything caches or shows it.
+    const renderUrl = await stripOrientationBand(data.render_url);
 
-    showResult(data.render_url, style, bom);
+    // Store as the base render for future restyling
+    baseRender = renderUrl;
+    // Cache this style's render for instant switching later
+    renderCache.set(style.id, renderUrl);
+
+    showResult(renderUrl, style, bom);
   } catch (e) {
     showError(e instanceof Error && e.message ? e.message : t('error.render'));
   }
@@ -625,11 +629,14 @@ async function selectStyle(style: StylePreset): Promise<void> {
 
     if (data.error) { showError(data.error); return; }
 
-    // Cache the result and update the style card's thumbnail
-    renderCache.set(style.id, data.render_url);
-    updateStyleCard(style.id, data.render_url);
+    // Restyles inherit a clean base image, but strip defensively anyway.
+    const renderUrl = await stripOrientationBand(data.render_url);
 
-    showResult(data.render_url, style, bom);
+    // Cache the result and update the style card's thumbnail
+    renderCache.set(style.id, renderUrl);
+    updateStyleCard(style.id, renderUrl);
+
+    showResult(renderUrl, style, bom);
   } catch (e) {
     showError(e instanceof Error && e.message ? e.message : t('error.restyle'));
   }
@@ -1030,11 +1037,13 @@ async function regenerateRender(style: StylePreset): Promise<void> {
 
     if (data.error) { showError(data.error); return; }
 
-    // Update the cache with the new render
-    renderCache.set(style.id, data.render_url);
-    updateStyleCard(style.id, data.render_url);
+    const renderUrl = await stripOrientationBand(data.render_url);
 
-    showResultRaw(data.render_url, style, bom);
+    // Update the cache with the new render
+    renderCache.set(style.id, renderUrl);
+    updateStyleCard(style.id, renderUrl);
+
+    showResultRaw(renderUrl, style, bom);
   } catch {
     showError(t('error.restyle'));
   }

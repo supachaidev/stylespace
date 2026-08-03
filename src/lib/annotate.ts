@@ -29,6 +29,10 @@ const PALETTE = [
   '#E8C4B7', '#D4D4D4', '#C4E8B7', '#F4C2C2',
 ];
 
+/** Navy used for the orientation band. stripOrientationBand() detects this
+ *  color in renders, so the two must stay in sync. */
+const BAND_COLOR = { r: 0x1f, g: 0x3a, b: 0x5f };
+
 // 1-9, then A-Z. Must match roomMarker() in functions/_lib/prompts.ts so
 // the text-prompt markers cross-reference the schematic.
 function roomMarker(i: number): string {
@@ -115,7 +119,7 @@ export async function annotateFloorPlan(
   // Orientation band: dark strip = the side nearest the camera, with the
   // left/right edges lettered. Referenced by name in buildBasePrompt and
   // buildVerifyPrompt (functions/_lib/prompts.ts) — keep the wording in sync.
-  ctx.fillStyle = '#1F3A5F';
+  ctx.fillStyle = `rgb(${BAND_COLOR.r}, ${BAND_COLOR.g}, ${BAND_COLOR.b})`;
   ctx.fillRect(0, h, w, bandH);
   ctx.fillStyle = '#FFFFFF';
   ctx.textBaseline = 'middle';
@@ -135,4 +139,78 @@ export async function annotateFloorPlan(
 
   const base = file.name.replace(/\.[^.]+$/, '') || 'upload';
   return new File([blob], `${base}_schematic.jpg`, { type: 'image/jpeg' });
+}
+
+/**
+ * Remove the FRONT orientation band if Gemini copied it into the render.
+ *
+ * The prompt tells Gemini not to draw the band, but image models often
+ * replicate input framing anyway. Rather than trust the instruction, scan
+ * the bottom ~20% of the render for rows dominated by the band's navy and
+ * crop everything from the top of that run down. Returns the original data
+ * URL untouched when no band is found (or on any decoding failure).
+ */
+export async function stripOrientationBand(dataUrl: string): Promise<string> {
+  try {
+    const blob = await (await fetch(dataUrl)).blob();
+    const bitmap = await createImageBitmap(blob);
+    const { width: w, height: h } = bitmap;
+
+    const canvas = document.createElement('canvas');
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) { bitmap.close(); return dataUrl; }
+    ctx.drawImage(bitmap, 0, 0);
+    bitmap.close();
+
+    const scanH = Math.max(1, Math.round(h * 0.2));
+    const scanTop = h - scanH;
+    const px = ctx.getImageData(0, scanTop, w, scanH).data;
+
+    // A row counts as "band" when >40% of sampled pixels are near the navy.
+    // Generous tolerance — Gemini repaints colors approximately. Furniture
+    // rarely produces a full-width 40% navy row, so false positives are rare.
+    const rowIsBand: boolean[] = [];
+    for (let row = 0; row < scanH; row++) {
+      let navy = 0;
+      let samples = 0;
+      for (let x = 0; x < w; x += 4) {
+        const i = (row * w + x) * 4;
+        samples++;
+        if (
+          Math.abs(px[i] - BAND_COLOR.r) < 55 &&
+          Math.abs(px[i + 1] - BAND_COLOR.g) < 55 &&
+          Math.abs(px[i + 2] - BAND_COLOR.b) < 60
+        ) navy++;
+      }
+      rowIsBand.push(navy / samples > 0.4);
+    }
+
+    // The band must touch (or nearly touch) the bottom edge — walk up from
+    // the bottom to its start, tolerating small gaps from text anti-aliasing.
+    let bottom = scanH - 1;
+    while (bottom >= 0 && !rowIsBand[bottom]) bottom--;
+    if (bottom < 0 || scanH - 1 - bottom > h * 0.06) return dataUrl;
+
+    let top = bottom;
+    let gap = 0;
+    for (let r = bottom - 1; r >= 0; r--) {
+      if (rowIsBand[r]) { top = r; gap = 0; }
+      else if (++gap > 3) break;
+    }
+    if (bottom - top + 1 < 3) return dataUrl; // too thin to be the band
+
+    // Crop a couple of pixels above the band to drop its anti-aliased edge.
+    const cropH = Math.max(1, scanTop + top - 2);
+    const out = document.createElement('canvas');
+    out.width = w;
+    out.height = cropH;
+    const octx = out.getContext('2d');
+    if (!octx) return dataUrl;
+    octx.drawImage(canvas, 0, 0, w, cropH, 0, 0, w, cropH);
+    return out.toDataURL('image/png');
+  } catch {
+    return dataUrl;
+  }
 }
