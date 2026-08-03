@@ -127,7 +127,7 @@ ${issues.map((s) => `- ${s}`).join('\n')}${mirrorHint}`;
 
 export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   try {
-    const limited = await checkRateLimit(env.STYLESPACE_RENDER_CACHE, request);
+    const limited = await checkRateLimit(request);
     if (limited) return limited;
 
     const form = await request.formData();

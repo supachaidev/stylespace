@@ -57,7 +57,7 @@ function looksLikePngDataUrl(s: unknown): s is string {
 
 export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   try {
-    const limited = await checkRateLimit(env.STYLESPACE_RENDER_CACHE, request);
+    const limited = await checkRateLimit(request);
     if (limited) return limited;
 
     const text = await request.text();
