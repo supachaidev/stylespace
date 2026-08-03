@@ -126,9 +126,6 @@ export function getStylePresets(): StylePreset[] {
   ];
 }
 
-// Keep for backward compat — but prefer getStylePresets() for fresh translations
-export const STYLE_PRESETS = getStylePresets();
-
 
 /**
  * Generate a truly randomized interior design style by mixing and matching
