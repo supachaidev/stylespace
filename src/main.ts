@@ -218,7 +218,6 @@ async function handleUpload(file: File): Promise<void> {
 
     // Store the analysis result — used throughout the rest of the session
     currentAnalysis = data;
-    console.log('Room data:', JSON.stringify(data, null, 2));
 
     // Proceed to the quiz
     showSectionRaw('quiz');
