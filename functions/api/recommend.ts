@@ -85,7 +85,42 @@ interface RecommendResponse {
   material_summary: string;
 }
 
-const RETRY_NOTE = '\n\nIMPORTANT: your previous reply could not be parsed. Return ONLY the JSON object — no prose, no code fences — and keep every reason under 60 characters.';
+/**
+ * Structured-outputs schema mirroring ClaudeResponse. The API constrains
+ * decoding to it, so the reply is always valid JSON (unless truncated at
+ * max_tokens — still checked below). Length limits aren't supported by the
+ * API; buildBomLines slices the reasons instead.
+ */
+const RESPONSE_SCHEMA: Anthropic.JSONOutputFormat = {
+  type: 'json_schema',
+  schema: {
+    type: 'object',
+    properties: {
+      picks: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            sku: { type: 'string' },
+            room_id: { type: 'string' },
+            quantity: { type: 'number' },
+            reason_en: { type: 'string' },
+            reason_th: { type: 'string' },
+          },
+          required: ['sku', 'room_id', 'quantity', 'reason_en', 'reason_th'],
+          additionalProperties: false,
+        },
+      },
+      rationale_en: { type: 'string' },
+      rationale_th: { type: 'string' },
+      material_summary: { type: 'string' },
+    },
+    required: ['picks', 'rationale_en', 'rationale_th', 'material_summary'],
+    additionalProperties: false,
+  },
+};
+
+const RETRY_NOTE ='\n\nIMPORTANT: your previous reply could not be parsed. Return ONLY the JSON object — no prose, no code fences — and keep every reason under 60 characters.';
 
 /**
  * One Claude call → parsed JSON, or null on truncation / malformed output.
@@ -98,6 +133,7 @@ async function requestPicks(client: Anthropic, prompt: string, attempt: number):
     // Thai reasons are token-heavy; a 6+ room plan overflowed 6000 and got
     // cut off mid-JSON. Unused headroom costs nothing.
     max_tokens: 16000,
+    output_config: { format: RESPONSE_SCHEMA },
     messages: [{ role: 'user', content: [{ type: 'text', text: prompt }] }],
   });
 
