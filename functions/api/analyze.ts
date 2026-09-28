@@ -16,6 +16,7 @@ import { checkRateLimit } from '../_lib/ratelimit';
 import { bytesToBase64 } from '../_lib/base64';
 import { getFile } from '../_lib/formdata';
 import { ANALYZE_PROMPT } from '../_lib/prompts';
+import { parseModelJSON } from '../_lib/json';
 
 interface Room {
   id: string;
@@ -87,16 +88,7 @@ function fixOverlaps(rooms: Room[]): Room[] {
 }
 
 function parseClaudeJSON(raw: string): RoomData {
-  let text = raw.trim();
-  // Sometimes Claude wraps JSON in ```json ... ``` fences despite being asked not to
-  if (text.startsWith('```')) {
-    const firstNewline = text.indexOf('\n');
-    const lastFence = text.lastIndexOf('```');
-    if (firstNewline > 0 && lastFence > firstNewline) {
-      text = text.slice(firstNewline + 1, lastFence).trim();
-    }
-  }
-  const data = JSON.parse(text) as RoomData;
+  const data = parseModelJSON<RoomData>(raw);
 
   for (const room of data.rooms ?? []) {
     room.x = clamp(Number(room.x), 0, 1);

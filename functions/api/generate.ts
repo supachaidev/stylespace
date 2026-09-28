@@ -20,6 +20,7 @@ import { GoogleGenAI } from '@google/genai';
 import Anthropic from '@anthropic-ai/sdk';
 import type { Env } from '../_lib/env';
 import { checkRateLimit } from '../_lib/ratelimit';
+import { parseModelJSON } from '../_lib/json';
 import { bytesToBase64 } from '../_lib/base64';
 import { getFile } from '../_lib/formdata';
 import { sha256Hex } from '../_lib/hash';
@@ -92,13 +93,7 @@ async function verifyRender(
 
     const first = message.content.find((b) => b.type === 'text');
     if (!first || first.type !== 'text') return null;
-    let text = first.text.trim();
-    if (text.startsWith('```')) {
-      const nl = text.indexOf('\n');
-      const last = text.lastIndexOf('```');
-      if (nl > 0 && last > nl) text = text.slice(nl + 1, last).trim();
-    }
-    const parsed = JSON.parse(text) as Partial<VerifyResult>;
+    const parsed = parseModelJSON<Partial<VerifyResult>>(first.text);
     if (typeof parsed.score !== 'number' || !Array.isArray(parsed.issues)) return null;
     return {
       score: parsed.score,

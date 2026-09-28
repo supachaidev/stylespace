@@ -256,6 +256,7 @@ Stay consistent across rooms — the same floor tile family should be used
 for connected dry zones unless the user clearly wants contrast.
 
 OUTPUT — return ONLY valid JSON. No markdown, no code fences.
+Start your reply with { and end it with }.
 
 {
   "picks": [
@@ -276,7 +277,7 @@ Constraints:
 - Every "sku" you output MUST appear in the catalog above (case-sensitive).
 - Every "room_id" MUST match one of the room IDs above.
 - Reasons must be concrete (mention a material/colour/feel), not generic.
-- "reason_en" and "reason_th" should each be ≤120 characters.`;
+- "reason_en" and "reason_th" should each be ≤80 characters.`;
 }
 
 // ─── Claude: render fidelity check (verify-and-retry loop) ─────────────────

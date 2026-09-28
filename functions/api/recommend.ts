@@ -27,6 +27,7 @@ import { checkRateLimit } from '../_lib/ratelimit';
 import { sha256Hex } from '../_lib/hash';
 import { CACHE_TTL_SECONDS } from '../_lib/cache';
 import { buildRecommendPrompt } from '../_lib/prompts';
+import { parseModelJSON } from '../_lib/json';
 import { catalogForPrompt, findProduct, type Product } from '../_lib/catalog';
 
 interface RoomInput {
@@ -84,16 +85,42 @@ interface RecommendResponse {
   material_summary: string;
 }
 
-function parseClaudeJSON(raw: string): ClaudeResponse {
-  let text = raw.trim();
-  if (text.startsWith('```')) {
-    const firstNewline = text.indexOf('\n');
-    const lastFence = text.lastIndexOf('```');
-    if (firstNewline > 0 && lastFence > firstNewline) {
-      text = text.slice(firstNewline + 1, lastFence).trim();
-    }
+const RETRY_NOTE = '\n\nIMPORTANT: your previous reply could not be parsed. Return ONLY the JSON object — no prose, no code fences — and keep every reason under 60 characters.';
+
+/**
+ * One Claude call → parsed JSON, or null on truncation / malformed output.
+ * Failures are logged so `wrangler pages deployment tail` shows the cause.
+ */
+async function requestPicks(client: Anthropic, prompt: string, attempt: number): Promise<ClaudeResponse | null> {
+  const message = await client.messages.create({
+    model: 'claude-sonnet-5',
+    thinking: { type: 'disabled' },
+    // Thai reasons are token-heavy; a 6+ room plan overflowed 6000 and got
+    // cut off mid-JSON. Unused headroom costs nothing.
+    max_tokens: 16000,
+    messages: [{ role: 'user', content: [{ type: 'text', text: prompt }] }],
+  });
+
+  const first = message.content.find((b) => b.type === 'text');
+  const text = first && first.type === 'text' ? first.text : '';
+  const diag = {
+    attempt,
+    stop_reason: message.stop_reason,
+    output_tokens: message.usage.output_tokens,
+    head: text.slice(0, 300),
+    tail: text.slice(-300),
+  };
+
+  if (message.stop_reason === 'max_tokens') {
+    console.error('recommend: output truncated at max_tokens', diag);
+    return null;
   }
-  return JSON.parse(text) as ClaudeResponse;
+  try {
+    return parseModelJSON<ClaudeResponse>(text);
+  } catch {
+    console.error('recommend: could not parse JSON', diag);
+    return null;
+  }
 }
 
 function roundQuantity(q: number, unit: Product['unit']): number {
@@ -172,22 +199,9 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
     const prompt = buildRecommendPrompt(rooms, styleLabel, stylePrompt, catalogForPrompt(), quizTags);
 
     const client = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY });
-    const message = await client.messages.create({
-      model: 'claude-sonnet-5',
-      thinking: { type: 'disabled' },
-      max_tokens: 6000,
-      messages: [{ role: 'user', content: [{ type: 'text', text: prompt }] }],
-    });
-
-    const first = message.content.find((b) => b.type === 'text');
-    if (!first || first.type !== 'text') {
-      return Response.json({ error: 'Claude returned no text content' }, { status: 502 });
-    }
-
-    let parsed: ClaudeResponse;
-    try {
-      parsed = parseClaudeJSON(first.text);
-    } catch {
+    const parsed = await requestPicks(client, prompt, 1)
+      ?? await requestPicks(client, prompt + RETRY_NOTE, 2);
+    if (!parsed) {
       return Response.json({ error: 'Could not parse recommendation JSON' }, { status: 502 });
     }
 
