@@ -8,9 +8,10 @@ Upload a 2D floor plan and instantly explore it in different interior design sty
 
 1. **Upload** a floor plan image (JPG, PNG)
 2. **AI analyzes** the rooms using Claude (Anthropic)
-3. **Base render** is generated in your custom style using Gemini (Google)
-4. **Pick a style** — the base render is restyled while keeping the same room layout
-5. **Compare styles** — cached results let you switch instantly between generated styles
+3. **SCG products are recommended** for each room by Claude, picked from the SCG catalog
+4. **Base render** is generated in your custom style using Gemini (Google)
+5. **Pick a style** — the base render is restyled while keeping the same room layout
+6. **Compare styles** — cached results let you switch instantly between generated styles
 
 ## Styles
 
@@ -30,8 +31,8 @@ Upload a 2D floor plan and instantly explore it in different interior design sty
 | Hosting | Cloudflare Pages |
 | API | Cloudflare Pages Functions (Workers runtime) |
 | Cache | Cloudflare KV (`STYLESPACE_RENDER_CACHE`) |
-| Room Analysis | Claude Sonnet (`@anthropic-ai/sdk`) |
-| Image Generation | Gemini 2.5 Flash Image (`@google/genai`) |
+| Room Analysis + Recommendations | Claude Sonnet 5 — `claude-sonnet-5` (`@anthropic-ai/sdk`) |
+| Image Generation | Gemini 3.1 Flash Image — `gemini-3.1-flash-image` (`@google/genai`) |
 | Frontend | TypeScript + Vite |
 
 ## Project Structure
@@ -40,15 +41,21 @@ Upload a 2D floor plan and instantly explore it in different interior design sty
 stylespace/
 ├── functions/
 │   ├── api/
-│   │   ├── analyze.ts      # POST /api/analyze  (Claude Vision)
-│   │   ├── generate.ts     # POST /api/generate (Gemini — first render)
-│   │   └── restyle.ts      # POST /api/restyle  (Gemini — restyle)
+│   │   ├── analyze.ts      # POST /api/analyze   (Claude Vision)
+│   │   ├── recommend.ts    # POST /api/recommend (Claude — SCG bill of materials)
+│   │   ├── generate.ts     # POST /api/generate  (Gemini — first render, Claude check)
+│   │   ├── restyle.ts      # POST /api/restyle   (Gemini — restyle)
+│   │   └── share.ts        # POST/GET /api/share (shareable result links)
 │   └── _lib/
 │       ├── base64.ts       # Chunked base64 ↔ bytes (Workers-safe)
 │       ├── cache.ts        # KV render cache
+│       ├── catalog.ts      # SCG product catalog accessors
 │       ├── env.ts          # Env bindings type
+│       ├── formdata.ts     # Typed FormData helpers
 │       ├── hash.ts         # WebCrypto SHA-256
-│       └── prompts.ts      # All Claude/Gemini prompt text
+│       ├── json.ts         # Tolerant JSON parsing of model output
+│       ├── prompts.ts      # All Claude/Gemini prompt text
+│       └── ratelimit.ts    # Per-IP rate limiter
 ├── src/
 │   ├── main.ts             # Upload flow, quiz, style picker, history
 │   ├── styles.ts           # Style presets + SCG product mapping
@@ -56,6 +63,7 @@ stylespace/
 │   ├── i18n.ts             # TH/EN translations
 │   ├── types.ts            # Shared TypeScript interfaces
 │   └── lib/resize.ts       # Client-side image resize via Canvas
+├── data/scg_catalog.json   # SCG products (SKUs, prices, source URLs)
 ├── index.html
 ├── style.css
 ├── vite.config.ts
@@ -117,5 +125,21 @@ npm run deploy
 | Method | Path | Description |
 |---|---|---|
 | POST | `/api/analyze` | Analyze rooms from a floor plan image |
+| POST | `/api/recommend` | Pick SCG products for each room (bill of materials) |
 | POST | `/api/generate` | Generate first render from floor plan + style |
 | POST | `/api/restyle` | Restyle an existing render into a new style |
+| POST / GET | `/api/share` | Save a result, or load it from a share link |
+
+## API Costs
+
+Estimated per user, based on the prompt and image sizes (not measured from billing):
+
+| Step | Model | Approx. cost |
+|---|---|---|
+| Analyze + recommend + render check | Claude Sonnet 5 ($2 / $10 per 1M input / output tokens) | $0.08–0.12 |
+| First render | Gemini 3.1 Flash Image ($0.067 per 1K image) | ~$0.07 |
+| **Full run** | | **~$0.15–0.19 (≈ ฿5–6)** |
+| Each new style | Gemini 3.1 Flash Image | ~$0.07 |
+| Cached style | — (served from KV) | free |
+
+Prices from [Claude API pricing](https://platform.claude.com/docs/en/about-claude/pricing) and [Gemini API pricing](https://ai.google.dev/gemini-api/docs/pricing), checked September 2026.
