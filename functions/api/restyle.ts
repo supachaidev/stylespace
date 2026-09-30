@@ -51,7 +51,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
     const ai = new GoogleGenAI({ apiKey: env.GOOGLE_API_KEY });
 
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash-image',
+      model: 'gemini-3.1-flash-image',
       contents: [{
         role: 'user',
         parts: [

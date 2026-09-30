@@ -47,7 +47,7 @@ async function callGemini(
   imageB64: string,
 ): Promise<string | null> {
   const response = await ai.models.generateContent({
-    model: 'gemini-2.5-flash-image',
+    model: 'gemini-3.1-flash-image',
     contents: [{
       role: 'user',
       parts: [
